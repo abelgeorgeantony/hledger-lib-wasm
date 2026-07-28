@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>hledger WASM Demo</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      background: #f5f7f8;
+      color: #172026;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    main {
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: minmax(280px, 420px) minmax(320px, 1fr);
+      gap: 20px;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    section {
+      min-width: 0;
+    }
+
+    .panel {
+      background: #ffffff;
+      border: 1px solid #d9e0e4;
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+      padding: 16px;
+    }
+
+    h1,
+    h2 {
+      margin: 0 0 12px;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      font-size: 24px;
+    }
+
+    h2 {
+      font-size: 16px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      margin: 14px 0;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    input,
+    textarea,
+    button,
+    pre {
+      font: inherit;
+    }
+
+    input[type="file"] {
+      max-width: 100%;
+    }
+
+    textarea,
+    pre {
+      box-sizing: border-box;
+      width: 100%;
+      border: 1px solid #cbd5da;
+      border-radius: 8px;
+      background: #fbfcfd;
+      color: inherit;
+    }
+
+    textarea {
+      min-height: 360px;
+      resize: vertical;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    pre {
+      min-height: 520px;
+      overflow: auto;
+      padding: 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 1px solid #25636f;
+      border-radius: 6px;
+      background: #2d7784;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+      min-height: 38px;
+      padding: 8px 12px;
+    }
+
+    button.secondary {
+      background: #fff;
+      color: #25636f;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .status {
+      min-height: 22px;
+      margin-top: 12px;
+      color: #47565f;
+      font-size: 13px;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        grid-template-columns: 1fr;
+        padding: 12px;
+      }
+
+      pre {
+        min-height: 320px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <section class="panel">
+      <h1>hledger WASM</h1>
+
+      <label>
+        WASM file
+        <input id="wasm-file" type="file" accept=".wasm,application/wasm" />
+      </label>
+
+      <label>
+        Journal file
+        <input id="journal-file" type="file" />
+      </label>
+
+      <label>
+        Journal text
+        <textarea id="journal-text" spellcheck="false">2026-01-01 opening
+  assets:bank        $100
+  equity:opening    -$100
+
+2026-01-02 coffee
+  expenses:food       $5
+  assets:bank
+</textarea>
+      </label>
+
+      <div class="actions">
+        <button id="check">Check</button>
+        <button id="accounts">Accounts</button>
+        <button id="balance">Balance</button>
+        <button id="clear" class="secondary">Clear</button>
+      </div>
+
+      <div id="status" class="status">
+        Uses ./wasm/hledger-wasm.wasm unless a WASM file is selected.
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Output</h2>
+      <pre id="output">Build hledger-wasm.wasm, then run a command.</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    import {
+      accounts,
+      balance,
+      check,
+      loadHledgerWasmFromFile,
+    } from "./js/hledger-bridge.js";
+
+    const wasmInput = document.querySelector("#wasm-file");
+    const journalInput = document.querySelector("#journal-file");
+    const journalText = document.querySelector("#journal-text");
+    const output = document.querySelector("#output");
+    const status = document.querySelector("#status");
+
+    wasmInput.addEventListener("change", async () => {
+      const file = wasmInput.files[0];
+      if (!file) return;
+      await loadHledgerWasmFromFile(file);
+      status.textContent = `Loaded ${file.name}.`;
+    });
+
+    journalInput.addEventListener("change", async () => {
+      const file = journalInput.files[0];
+      if (!file) return;
+      journalText.value = await file.text();
+      status.textContent = `Loaded ${file.name}.`;
+    });
+
+    document.querySelector("#check").addEventListener("click", () => {
+      run("check", () => check(journalText.value));
+    });
+
+    document.querySelector("#accounts").addEventListener("click", () => {
+      run("accounts", () => accounts(journalText.value));
+    });
+
+    document.querySelector("#balance").addEventListener("click", () => {
+      run("balance", () => balance(journalText.value));
+    });
+
+    document.querySelector("#clear").addEventListener("click", () => {
+      output.textContent = "";
+      status.textContent = "Output cleared.";
+    });
+
+    async function run(name, action) {
+      setBusy(true);
+      status.textContent = `Running ${name}...`;
+      try {
+        const result = await action();
+        output.textContent = JSON.stringify(result, null, 2);
+        status.textContent = `${name} finished.`;
+      } catch (error) {
+        output.textContent = error.stack || String(error);
+        status.textContent = `${name} failed.`;
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function setBusy(busy) {
+      for (const button of document.querySelectorAll("button")) {
+        button.disabled = busy;
+      }
+    }
+  </script>
+</body>
+
+</html>

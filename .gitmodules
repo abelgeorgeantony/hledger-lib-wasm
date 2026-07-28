@@ -1,0 +1,3 @@
+[submodule "vendor/hledger"]
+	path = vendor/hledger
+	url = https://github.com/simonmichael/hledger.git

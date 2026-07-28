@@ -1,0 +1,18 @@
+cabal-version:      2.4
+name:               hledger-wasm
+version:            0.1.0.0
+synopsis:           Browser-oriented WASI bridge for hledger-lib
+license:            GPL-3.0-or-later
+build-type:         Simple
+
+executable hledger-wasm
+  main-is:          Main.hs
+  hs-source-dirs:   .
+  default-language: GHC2021
+  ghc-options:      -Wall
+  build-depends:
+      aeson >=1 && <2.3
+    , base >=4.18 && <4.23
+    , bytestring
+    , hledger-lib ==1.52.1
+    , mtl

@@ -1,0 +1,6 @@
+dist-newstyle/
+node_modules/
+.agents/
+.codex/
+wasm/*
+!wasm/hledger-wasm-final*

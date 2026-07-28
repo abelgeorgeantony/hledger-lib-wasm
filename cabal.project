@@ -1,0 +1,13 @@
+packages:
+  bridge
+  stubs/terminal-size
+  vendor/hledger/hledger-lib
+
+with-compiler: wasm32-wasi-ghc
+
+constraints:
+  terminal-size ==0.3.4
+
+allow-newer:
+  terminal-size:base
+z
