@@ -12,6 +12,7 @@ executable hledger-wasm
     , bytestring
     , mtl
     , text
+    , time
     , ghc-experimental
     , containers
   default-language: Haskell2010

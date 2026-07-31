@@ -25,7 +25,9 @@ import Hledger.Data.Journal
 import Hledger.Reports.BalanceReport (balanceReport)
 import Hledger.Reports.PostingsReport (postingsReport)
 import Hledger.Reports.EntriesReport (entriesReport)
-import Hledger.Reports.ReportOptions (defreportspec, ReportSpec)
+import Hledger.Reports.ReportOptions
+  (defreportopts, ReportSpec, ReportOpts(..), reportOptsToSpec)
+import Data.Time.Clock (getCurrentTime, utctDay)
 import Hledger.Data.JournalChecks (journalCheckBalanceAssertions)
 
 import Hledger.Query (Query(..))
@@ -38,7 +40,7 @@ journalTable :: IORef (Map.Map Int Journal, Int)
 journalTable = unsafePerformIO (newIORef (Map.empty, 0))
 
 foreign export javascript "parseJournal" hs_parseJournal :: JSString -> IO JSString
-foreign export javascript "runReport" hs_runReport :: Int -> JSString -> IO JSString
+foreign export javascript "runReport" hs_runReport :: Int -> JSString -> JSString -> IO JSString
 foreign export javascript "freeJournal" hs_freeJournal :: Int -> IO ()
 
 
@@ -90,41 +92,47 @@ hs_parseJournal jstext = do
 
 jsonResponse :: [Pair] -> IO JSString
 jsonResponse = pure . toJSString . BLC.unpack . encode . object
-hs_runReport :: Int -> JSString -> IO JSString
-hs_runReport handle jsReportName = do
+hs_runReport :: Int -> JSString -> JSString -> IO JSString
+hs_runReport handle jsReportName jsQuery = do
   (tbl, _) <- readIORef journalTable
   case Map.lookup handle tbl of
     Nothing -> jsonResponse ["ok" .= False, "error" .= ("invalid handle" :: String)]
-    Just journal -> case fromJSString jsReportName of
-      "accounts" -> jsonResponse
-        ["ok" .= True, "data" .= journalAccountNames journal]
-      "balance" -> jsonResponse
-        ["ok" .= True, "data" .= toJSON (balanceReport defreportspec journal)]
-      "check" -> case journalCheckBalanceAssertions journal of
-        Left err -> jsonResponse
-          ["ok" .= True, "data" .= object ["valid" .= False, "error" .= err]]
-        Right () -> jsonResponse
-          ["ok" .= True, "data" .= object ["valid" .= True]]
-      "register" -> jsonResponse
-        ["ok" .= True, "data" .= toJSON (postingsReport defreportspec journal)]
-      "print" -> jsonResponse
-        ["ok" .= True, "data" .= toJSON (entriesReport defreportspec journal)]
-      "prices" -> jsonResponse
-        ["ok" .= True, "data" .= toJSON (jpricedirectives journal)]
-      "payees" -> jsonResponse
-        ["ok" .= True, "data" .= journalPayeesDeclaredOrUsed journal]
-      "commodities" -> jsonResponse
-        ["ok" .= True, "data" .= journalCommoditiesUsed journal]
-      "tags" -> jsonResponse
-        ["ok" .= True, "data" .= journalTagsDeclaredOrUsed journal]
-      "balancesheet" -> jsonResponse
-        ["ok" .= True, "data" .= toJSON (balanceSheetReport defreportspec journal)]
-      "incomestatement" -> jsonResponse
-        ["ok" .= True, "data" .= toJSON (incomeStatementReport defreportspec journal)]
-      "cashflow" -> jsonResponse
-        ["ok" .= True, "data" .= toJSON (cashflowReport defreportspec journal)]
-      other -> jsonResponse
-        ["ok" .= False, "error" .= ("unknown report: " ++ other)]
+    Just journal -> do
+      today <- utctDay <$> getCurrentTime
+      let queryWords = T.words (T.pack (fromJSString jsQuery))
+      let ropts = defreportopts { querystring_ = queryWords }
+      case reportOptsToSpec today ropts of
+        Left err -> jsonResponse ["ok" .= False, "error" .= ("bad query: " ++ err)]
+        Right rspec -> case fromJSString jsReportName of
+          "accounts" -> jsonResponse
+            ["ok" .= True, "data" .= journalAccountNames journal]
+          "balance" -> jsonResponse
+            ["ok" .= True, "data" .= toJSON (balanceReport rspec journal)]
+          "check" -> case journalCheckBalanceAssertions journal of
+            Left err -> jsonResponse
+              ["ok" .= True, "data" .= object ["valid" .= False, "error" .= err]]
+            Right () -> jsonResponse
+              ["ok" .= True, "data" .= object ["valid" .= True]]
+          "register" -> jsonResponse
+            ["ok" .= True, "data" .= toJSON (postingsReport rspec journal)]
+          "print" -> jsonResponse
+            ["ok" .= True, "data" .= toJSON (entriesReport rspec journal)]
+          "prices" -> jsonResponse
+            ["ok" .= True, "data" .= toJSON (jpricedirectives journal)]
+          "payees" -> jsonResponse
+            ["ok" .= True, "data" .= journalPayeesDeclaredOrUsed journal]
+          "commodities" -> jsonResponse
+            ["ok" .= True, "data" .= journalCommoditiesUsed journal]
+          "tags" -> jsonResponse
+            ["ok" .= True, "data" .= journalTagsDeclaredOrUsed journal]
+          "balancesheet" -> jsonResponse
+            ["ok" .= True, "data" .= toJSON (balanceSheetReport rspec journal)]
+          "incomestatement" -> jsonResponse
+            ["ok" .= True, "data" .= toJSON (incomeStatementReport rspec journal)]
+          "cashflow" -> jsonResponse
+            ["ok" .= True, "data" .= toJSON (cashflowReport rspec journal)]
+          other -> jsonResponse
+            ["ok" .= False, "error" .= ("unknown report: " ++ other)]
 
 hs_freeJournal :: Int -> IO ()
 hs_freeJournal handle =

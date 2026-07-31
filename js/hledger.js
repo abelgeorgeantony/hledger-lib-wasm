@@ -24,7 +24,7 @@ function getSharedInstance() {
       const wasi = new WASI([], [], fds, { debug: false });
       const instance_exports = {};
 
-      const compressed = await fetch((wasmUrlPrefix+"hledger-wasm-final.wasm.gz"));
+      const compressed = await fetch((wasmUrlPrefix + "hledger-wasm-final.wasm.gz"));
       const decompressed = compressed.body.pipeThrough(new DecompressionStream("gzip"));
       const bytes = await new Response(decompressed).arrayBuffer();
 
@@ -65,23 +65,27 @@ export class HledgerSession {
     return result;
   }
 
-  async accounts() { return this.#runReport("accounts"); }
-  async balance() { return this.#runReport("balance"); }
-  async register() { return this.#runReport("register"); }
-  async print() { return this.#runReport("print"); }
-  async prices() { return this.#runReport("prices"); }
-  async payees() { return this.#runReport("payees"); }
-  async commodities() { return this.#runReport("commodities"); }
-  async tags() { return this.#runReport("tags"); }
-  async balancesheet() { return this.#runReport("balancesheet"); }
-  async incomestatement() { return this.#runReport("incomestatement"); }
-  async cashflow() { return this.#runReport("cashflow"); }
-  async check() { return this.#runReport("check"); }
+  
 
-  async #runReport(name) {
+  async #runReport(name, query = "") {
     if (this.#handle === null) return { ok: false, error: "no journal loaded" };
-    return JSON.parse(await this.#instance.exports.runReport(this.#handle, name));
+    return JSON.parse(await this.#instance.exports.runReport(this.#handle, name, query));
   }
+
+  async accounts(query = "") { return this.#runReport("accounts", query); }
+  async balance(query = "") { return this.#runReport("balance", query); }
+  async check(query = "") { return this.#runReport("check", query); }
+  async register(query = "") { return this.#runReport("register", query); }
+  async print(query = "") { return this.#runReport("print", query); }
+  async prices(query = "") { return this.#runReport("prices", query); }
+  async payees(query = "") { return this.#runReport("payees", query); }
+  async commodities(query = "") { return this.#runReport("commodities", query); }
+  async tags(query = "") { return this.#runReport("tags", query); }
+  async balancesheet(query = "") { return this.#runReport("balancesheet", query); }
+  async incomestatement(query = "") { return this.#runReport("incomestatement", query); }
+  async cashflow(query = "") { return this.#runReport("cashflow", query); }
+
+
 
   async #freeCurrentHandle() {
     if (this.#handle !== null) {
