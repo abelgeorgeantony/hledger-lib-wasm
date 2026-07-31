@@ -157,11 +157,6 @@
       <h1>hledger WASM</h1>
 
       <label>
-        WASM file
-        <input id="wasm-file" type="file" accept=".wasm,application/wasm" />
-      </label>
-
-      <label>
         Journal file
         <input id="journal-file" type="file" />
       </label>
@@ -170,7 +165,7 @@
         Journal text
         <textarea id="journal-text" spellcheck="false">2026-01-01 opening
   assets:bank        $100
-  equity:opening    -$100
+  equity:opening
 
 2026-01-02 coffee
   expenses:food       $5
@@ -197,45 +192,73 @@
   </main>
 
   <script type="module">
-    import {
-      accounts,
-      balance,
-      check,
-      loadHledgerWasmFromFile,
-    } from "./js/hledger-bridge.js";
+    import { HledgerSession } from "./js/hledger.js";
 
-    const wasmInput = document.querySelector("#wasm-file");
+    const session = await HledgerSession.create();
+
     const journalInput = document.querySelector("#journal-file");
     const journalText = document.querySelector("#journal-text");
     const output = document.querySelector("#output");
     const status = document.querySelector("#status");
+    const reportButtons = [
+      document.querySelector("#check"),
+      document.querySelector("#accounts"),
+      document.querySelector("#balance"),
+    ];
 
-    wasmInput.addEventListener("change", async () => {
-      const file = wasmInput.files[0];
-      if (!file) return;
-      await loadHledgerWasmFromFile(file);
-      status.textContent = `Loaded ${file.name}.`;
-    });
+    let debounceTimer = null;
+
+    const result = await session.loadJournal(journalText.value);
+    if (session.isLoaded) {
+      status.textContent = "Journal loaded.";
+      output.textContent = "Journal loaded.";
+    } else {
+      status.textContent = "Journal error: " + result.error;
+      output.textContent = "Journal error: " + result.error;
+    }
+
+    async function reparse() {
+      const result = await session.loadJournal(journalText.value);
+      if (result.ok) {
+        status.textContent = "Journal loaded.";
+      } else {
+        status.textContent = "Journal error: " + result.error;
+      }
+      setReportButtonsEnabled(session.isLoaded);
+    }
+
+    function setReportButtonsEnabled(enabled) {
+      for (const btn of reportButtons) btn.disabled = !enabled;
+    }
+
+    function scheduleReparse() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(reparse, 300);
+    }
+
+    await reparse(); // parse the default sample text once, before wiring up any listeners
+
+    journalText.addEventListener("input", scheduleReparse);
 
     journalInput.addEventListener("change", async () => {
       const file = journalInput.files[0];
       if (!file) return;
       journalText.value = await file.text();
-      status.textContent = `Loaded ${file.name}.`;
+      await reparse();
     });
 
     document.querySelector("#check").addEventListener("click", () => {
-      run("check", () => check(journalText.value));
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("check", () => session.check());
     });
-
     document.querySelector("#accounts").addEventListener("click", () => {
-      run("accounts", () => accounts(journalText.value));
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("accounts", () => session.accounts());
     });
-
     document.querySelector("#balance").addEventListener("click", () => {
-      run("balance", () => balance(journalText.value));
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("balance", () => session.balance());
     });
-
     document.querySelector("#clear").addEventListener("click", () => {
       output.textContent = "";
       status.textContent = "Output cleared.";
@@ -253,6 +276,7 @@
         status.textContent = `${name} failed.`;
       } finally {
         setBusy(false);
+        setReportButtonsEnabled(session.isLoaded); // restore correct state, don't just blanket re-enable
       }
     }
 

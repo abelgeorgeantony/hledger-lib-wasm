@@ -9,5 +9,25 @@ constraints:
   terminal-size ==0.3.4
 
 allow-newer:
-  terminal-size:base
-z
+  terminal-size:base,
+  *:base,
+  *:ghc-bignum,
+  *:ghc-prim,
+  *:ghc-internal,
+  *:template-haskell,
+  *:ghc-boot-th,
+  *:ghc-boot,
+  *:deepseq,
+  *:array,
+  *:bytestring,
+  *:containers,
+  *:directory,
+  *:filepath,
+  *:process,
+  *:time,
+  *:unix,
+  *:pretty,
+  *:stm,
+  *:parsec,
+  *:transformers,
+  *:exceptions
