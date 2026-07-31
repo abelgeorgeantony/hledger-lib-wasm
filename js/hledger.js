@@ -67,6 +67,15 @@ export class HledgerSession {
 
   async accounts() { return this.#runReport("accounts"); }
   async balance() { return this.#runReport("balance"); }
+  async register() { return this.#runReport("register"); }
+  async print() { return this.#runReport("print"); }
+  async prices() { return this.#runReport("prices"); }
+  async payees() { return this.#runReport("payees"); }
+  async commodities() { return this.#runReport("commodities"); }
+  async tags() { return this.#runReport("tags"); }
+  async balancesheet() { return this.#runReport("balancesheet"); }
+  async incomestatement() { return this.#runReport("incomestatement"); }
+  async cashflow() { return this.#runReport("cashflow"); }
   async check() { return this.#runReport("check"); }
 
   async #runReport(name) {

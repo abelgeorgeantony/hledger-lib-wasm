@@ -177,6 +177,15 @@
         <button id="check">Check</button>
         <button id="accounts">Accounts</button>
         <button id="balance">Balance</button>
+        <button id="register">Register</button>
+        <button id="print">Print</button>
+        <button id="prices">Prices</button>
+        <button id="payees">Payees</button>
+        <button id="commodities">Commodities</button>
+        <button id="tags">Tags</button>
+        <button id="balancesheet">Balancesheet</button>
+        <button id="incomestatement">Incomestatement</button>
+        <button id="cashflow">Cashflow</button>
         <button id="clear" class="secondary">Clear</button>
       </div>
 
@@ -258,6 +267,42 @@
     document.querySelector("#balance").addEventListener("click", () => {
       if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
       run("balance", () => session.balance());
+    });
+    document.querySelector("#register").addEventListener("click", () => {
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("register", () => session.register());
+    });
+    document.querySelector("#print").addEventListener("click", () => {
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("print", () => session.print());
+    });
+    document.querySelector("#prices").addEventListener("click", () => {
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("prices", () => session.prices());
+    });
+    document.querySelector("#payees").addEventListener("click", () => {
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("payees", () => session.payees());
+    });
+    document.querySelector("#commodities").addEventListener("click", () => {
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("commodities", () => session.commodities());
+    });
+    document.querySelector("#tags").addEventListener("click", () => {
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("tags", () => session.tags());
+    });
+    document.querySelector("#balancesheet").addEventListener("click", () => {
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("balancesheet", () => session.balancesheet());
+    });
+    document.querySelector("#incomestatement").addEventListener("click", () => {
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("incomestatement", () => session.incomestatement());
+    });
+    document.querySelector("#cashflow").addEventListener("click", () => {
+      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+      run("cashflow", () => session.cashflow());
     });
     document.querySelector("#clear").addEventListener("click", () => {
       output.textContent = "";
