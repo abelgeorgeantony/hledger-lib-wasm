@@ -5,7 +5,6 @@ description: hledger running in the browser via WebAssembly
 # Exclude development, Haskell, and submodule directories to prevent Jekyll build failures
 exclude:
   - bridge/
-  - js/
   - scripts/
   - stubs/
   - vendor/
