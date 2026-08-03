@@ -14,7 +14,7 @@ import Data.Aeson.Types (Pair)
 import Data.Time.Clock (getCurrentTime, utctDay)
 
 import Hledger.Read (parseAndFinaliseJournal, forecast_, _ioDay, definputopts, InputOpts, balancingopts_)
-import Hledger.Data.Balancing (BalancingOpts(..))
+import Hledger.Data.Balancing (BalancingOpts(..), defbalancingopts)
 import Hledger.Read.JournalReader (journalp)
 import Hledger.Read.RulesReader (readRules, readJournalFromCsv)
 import Hledger.Data.Types (Journal, jpricedirectives, AccountType(..), MixedAmount, DateSpan(..))
@@ -24,9 +24,11 @@ import Hledger.Data.Journal
   , journalCommoditiesUsed
   , journalTagsDeclaredOrUsed
   )
+import Hledger.Data.Transaction (showTransaction)
 import Hledger.Reports.BalanceReport (balanceReport)
 import Hledger.Reports.PostingsReport (postingsReport)
 import Hledger.Reports.EntriesReport (entriesReport)
+import Hledger.Reports.BudgetReport (budgetReport)
 import Hledger.Reports.ReportOptions
   (defreportopts, ReportSpec, ReportOpts(..), reportOptsToSpec)
 import Data.Time.Clock (getCurrentTime, utctDay)
@@ -82,6 +84,15 @@ incomeStatementReport rspec j = compoundBalanceReport rspec j
 cashflowReport :: ReportSpec -> Journal -> CompoundPeriodicReport DisplayName MixedAmount
 cashflowReport rspec j = compoundBalanceReport rspec j
   [ mkSubreport "Cash flows" [Cash] True ]
+
+--budgetReport :: ReportSpec -> BalancingOpts -> DateSpan -> Journal -> BudgetReport
+--budgetReport rspec bopts reqspan j = 
+--  let
+--    actualsReport = multiBalanceReport rspec bopts j
+--    budgetj       = journalWithBudgetTransactions reqspan j
+--    budgetsReport = multiBalanceReport rspec bopts budgetj
+--  in 
+--    buildBudgetReport actualsReport budgetsReport
 
 
 
@@ -171,6 +182,8 @@ hs_runReport handle jsReportName jsQuery = do
             ["ok" .= True, "data" .= toJSON (postingsReport rspec journal)]
           "print" -> jsonResponse
             ["ok" .= True, "data" .= toJSON (entriesReport rspec journal)]
+          "printtext" -> jsonResponse
+            ["ok" .= True, "data" .= T.intercalate "\n" (map showTransaction (entriesReport rspec journal))]
           "prices" -> jsonResponse
             ["ok" .= True, "data" .= toJSON (jpricedirectives journal)]
           "payees" -> jsonResponse
@@ -185,6 +198,8 @@ hs_runReport handle jsReportName jsQuery = do
             ["ok" .= True, "data" .= toJSON (incomeStatementReport rspec journal)]
           "cashflow" -> jsonResponse
             ["ok" .= True, "data" .= toJSON (cashflowReport rspec journal)]
+          "budget" -> jsonResponse
+            ["ok" .= True, "data" .= toJSON (budgetReport rspec defbalancingopts (DateSpan Nothing Nothing) journal)]
           other -> jsonResponse
             ["ok" .= False, "error" .= ("unknown report: " ++ other)]
 

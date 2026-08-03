@@ -91,6 +91,7 @@ export class HledgerSession {
   async checkStrict(query = "") { return this.#runReport("checkstrict", query); }
   async register(query = "") { return this.#runReport("register", query); }
   async print(query = "") { return this.#runReport("print", query); }
+  async printText(query = "") { return this.#runReport("printtext", query); }
   async prices(query = "") { return this.#runReport("prices", query); }
   async payees(query = "") { return this.#runReport("payees", query); }
   async commodities(query = "") { return this.#runReport("commodities", query); }
@@ -98,6 +99,7 @@ export class HledgerSession {
   async balancesheet(query = "") { return this.#runReport("balancesheet", query); }
   async incomestatement(query = "") { return this.#runReport("incomestatement", query); }
   async cashflow(query = "") { return this.#runReport("cashflow", query); }
+  async budget(query = "") { return this.#runReport("budget", query); }
 
 
   async #freeCurrentHandle() {

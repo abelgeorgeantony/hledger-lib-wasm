@@ -37,7 +37,7 @@
 
     main {
       display: grid;
-      grid-template-columns: minmax(360px, 1fr) minmax(240px, 300px);
+      grid-template-columns: minmax(360px, 1fr) minmax(240px, 320px);
       gap: 1px;
       background: var(--rule);
       height: 100vh;
@@ -50,8 +50,10 @@
     }
 
     .pane-right {
+      display: flex;
+      flex-direction: column;
       padding: 24px;
-      overflow: auto;
+      overflow-y: auto;
     }
 
     .pane-left {
@@ -59,35 +61,6 @@
       flex-direction: column;
       padding: 24px;
       min-height: 0;
-    }
-
-    header {
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid var(--ink);
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-    }
-
-    h1 .rule {
-      display: inline-block;
-      width: 1.3em;
-      border-bottom: 2px solid var(--accent);
-      margin: 0 0.35em 0 0;
-      transform: translateY(-0.35em);
-    }
-
-    .tagline {
-      margin: 4px 0 0;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--ink-soft);
-      letter-spacing: 0.02em;
     }
 
     h2 {
@@ -138,7 +111,79 @@
       padding: 12px;
     }
 
-    /* --- Right pane: a top bar, then exactly one of input-view / output-view --- */
+    /* --- Status Banner --- */
+
+    .status-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--ink);
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      flex: none;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background-color: var(--ink-soft);
+    }
+
+    .status-banner[data-state="ok"] {
+      background: #edf7f2;
+      border-color: #a8d5ba;
+      color: var(--accent-ink);
+    }
+
+    .status-banner[data-state="ok"] .status-dot {
+      background-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(47, 107, 79, 0.2);
+    }
+
+    .status-banner[data-state="error"] {
+      background: #fdf2f2;
+      border-color: #f5c2c2;
+      color: #900c0c;
+    }
+
+    .status-banner[data-state="error"] .status-dot {
+      background-color: #d32f2f;
+      box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.2);
+    }
+
+    .status-banner[data-state="loading"] {
+      background: var(--paper);
+      border-color: var(--rule);
+      color: var(--ink-soft);
+    }
+
+    .status-banner[data-state="loading"] .status-dot {
+      background-color: #d97706;
+      animation: pulse 1.2s infinite ease-in-out;
+    }
+
+    .status-banner[data-state="info"] {
+      background: var(--paper);
+      border-color: var(--rule);
+      color: var(--ink-soft);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.85); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    /* --- View bar & Top Controls --- */
 
     .view-bar {
       display: flex;
@@ -299,26 +344,30 @@
       margin: 20px 0;
     }
 
-    .status {
-      margin-top: 14px;
-      padding-top: 10px;
-      border-top: 1px solid var(--rule);
+    footer {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px dashed var(--rule);
+    }
+
+    .tagline {
+      margin: 0;
       font-family: var(--mono);
-      font-size: 11.5px;
+      font-size: 11px;
       color: var(--ink-soft);
-      min-height: 1.4em;
+      letter-spacing: 0.02em;
     }
 
     @media (max-width: 780px) {
       main {
         grid-template-columns: 1fr;
-        grid-template-rows: 1fr auto;
+        grid-template-rows: auto 1fr;
         height: auto;
         min-height: 100vh;
       }
 
       .pane-left {
-        height: 80vh;
+        height: 70vh;
       }
     }
 
@@ -333,10 +382,10 @@
 <body>
   <main>
     <section class="pane pane-left">
-      <header>
-        <h1><span class="rule"></span>hledger WASM</h1>
-        <p class="tagline">hledger-lib, compiled to WebAssembly, running in this page</p>
-      </header>
+      <div id="status" class="status-banner" data-state="loading">
+        <span class="status-dot"></span>
+        <span id="status-text">Loading WASM module...</span>
+      </div>
 
       <div class="view-bar">
         <div class="mode-toggle" role="radiogroup" aria-label="Input format">
@@ -394,6 +443,7 @@ if TRANSFER TO SAVINGS
         <textarea id="output" readonly spellcheck="false">Waiting for a journal to load.</textarea>
       </div>
     </section>
+
     <section class="pane pane-right">
       <div class="field">
         <label class="field-label" for="query-input">Query filter (optional)</label>
@@ -405,13 +455,10 @@ if TRANSFER TO SAVINGS
         <label class="toggle"><input type="checkbox" id="check-strict-toggle" /> Strict check</label>
       </div>
 
-      <hr class="divider" />
-
       <div id="report-groups"></div>
 
       <button id="clear" class="secondary" style="margin-top: 4px;">Clear output</button>
 
-      <div id="status" class="status">Loading WASM module...</div>
     </section>
   </main>
 
@@ -427,7 +474,8 @@ if TRANSFER TO SAVINGS
     const forecastToggle = document.querySelector("#forecast-toggle");
     const checkStrictToggle = document.querySelector("#check-strict-toggle");
     const output = document.querySelector("#output");
-    const status = document.querySelector("#status");
+    const statusBanner = document.querySelector("#status");
+    const statusText = document.querySelector("#status-text");
     const reportGroupsContainer = document.querySelector("#report-groups");
     const clearButton = document.querySelector("#clear");
     const viewToggleButton = document.querySelector("#view-toggle");
@@ -437,7 +485,12 @@ if TRANSFER TO SAVINGS
     let mode = "journal"; // "journal" | "csv"
     let view = "input";   // "input" | "output"
 
-    // --- View toggle: exactly one of input/output is visible at a time --
+    function setStatus(text, state = "info") {
+      statusText.textContent = text;
+      statusBanner.dataset.state = state;
+    }
+
+    // --- View toggle ----------------------------------------------------
     function setView(next) {
       view = next;
       inputView.style.display = view === "input" ? "flex" : "none";
@@ -448,10 +501,6 @@ if TRANSFER TO SAVINGS
     viewToggleButton.addEventListener("click", () => setView(view === "input" ? "output" : "input"));
 
     // --- Report button definitions -------------------------------------
-    // One place describes every report button: its group, label, and what
-    // it actually calls. The markup and the click wiring are both generated
-    // from this table below, instead of writing each button and handler
-    // out by hand.
     const reportGroups = [
       {
         label: "Validate",
@@ -486,6 +535,13 @@ if TRANSFER TO SAVINGS
           { id: "balancesheet", label: "Balance sheet", run: (q) => session.balancesheet(q) },
           { id: "incomestatement", label: "Income statement", run: (q) => session.incomestatement(q) },
           { id: "cashflow", label: "Cash flow", run: (q) => session.cashflow(q) },
+          { id: "budget", label: "Budget report", run: (q) => session.budget(q) },
+        ],
+      },
+      {
+        label: "Export",
+        items: [
+          { id: "printtext", label: ".journal", run: (q) => session.printText(q) },
         ],
       },
     ];
@@ -510,7 +566,7 @@ if TRANSFER TO SAVINGS
         btn.textContent = item.label;
         btn.disabled = true;
         btn.addEventListener("click", () => {
-          if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+          if (!session.isLoaded) { setStatus("No valid journal loaded.", "error"); return; }
           runReport(item.label, () => item.run(queryInput.value));
         });
         buttonsEl.appendChild(btn);
@@ -526,30 +582,37 @@ if TRANSFER TO SAVINGS
     }
 
     // --- Session lifecycle ----------------------------------------------
+    setStatus("Initializing WASM module...", "loading");
     const session = await HledgerSession.create();
 
     let debounceTimer = null;
 
     function scheduleReparse() {
+      setStatus("Waiting for typing...", "loading");
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(reparse, 300);
     }
 
     async function reparse() {
       setReportButtonsEnabled(false);
+      setStatus(`Parsing ${mode.toUpperCase()} input...`, "loading");
       const forecast = forecastToggle.checked;
 
       const result = mode === "csv"
         ? await session.parseCsv(csvText.value, csvRulesText.value, forecast)
         : await session.loadJournal(journalText.value, forecast);
 
-      status.textContent = result.ok
-        ? "Journal loaded."
-        : "Journal error: " + result.error;
+      if (result.ok) {
+        setStatus(`${mode.toUpperCase()} parsed successfully.`, "ok");
+      } else {
+        setStatus(`${mode.toUpperCase()} error: ${result.error}`, "error");
+      }
+      
       setReportButtonsEnabled(session.isLoaded);
     }
 
     function setMode(next) {
+      if (mode === next) return;
       mode = next;
       journalPanel.style.display = mode === "journal" ? "flex" : "none";
       csvPanel.style.display = mode === "csv" ? "flex" : "none";
@@ -570,21 +633,26 @@ if TRANSFER TO SAVINGS
 
     clearButton.addEventListener("click", () => {
       output.value = "";
-      status.textContent = "Output cleared.";
+      setStatus("Output cleared.", "info");
       setView("output");
     });
 
     async function runReport(label, action) {
       setView("output");
       setReportButtonsEnabled(false);
-      status.textContent = `Running ${label}...`;
+      setStatus(`Running ${label}...`, "loading");
       try {
         const result = await action();
-        output.value = JSON.stringify(result, null, 2);
-        status.textContent = `${label} finished.`;
+        // Check if the result has a 'data' string, otherwise fallback to JSON
+        if (result && typeof result.data === 'string') {
+          output.value = result.data;
+        } else {
+          output.value = JSON.stringify(result, null, 2);
+        }
+        setStatus(`${label} report finished.`, "ok");
       } catch (error) {
         output.value = error.stack || String(error);
-        status.textContent = `${label} failed.`;
+        setStatus(`${label} report failed.`, "error");
       } finally {
         setReportButtonsEnabled(session.isLoaded);
       }
