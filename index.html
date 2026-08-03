@@ -4,148 +4,327 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>hledger WASM Demo</title>
+  <title>hledger WASM</title>
   <style>
     :root {
       color-scheme: light dark;
-      font-family:
-        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-        "Segoe UI", sans-serif;
-      background: #f5f7f8;
-      color: #172026;
+      --ink: #1a2420;
+      --ink-soft: #4b5a54;
+      --paper: #f6f5f0;
+      --panel: #ffffff;
+      --rule: #d8d3c4;
+      --accent: #2f6b4f;
+      --accent-ink: #16332a;
+      --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+      --sans: "Iowan Old Style", "Source Serif 4", Georgia, ui-serif, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
     }
 
     body {
       margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
     }
 
     main {
-      box-sizing: border-box;
       display: grid;
-      grid-template-columns: minmax(280px, 420px) minmax(320px, 1fr);
-      gap: 20px;
-      min-height: 100vh;
-      padding: 20px;
+      grid-template-columns: minmax(360px, 1fr) minmax(240px, 300px);
+      gap: 1px;
+      background: var(--rule);
+      height: 100vh;
     }
 
-    section {
+    .pane {
+      background: var(--panel);
       min-width: 0;
+      min-height: 0;
     }
 
-    .panel {
-      background: #ffffff;
-      border: 1px solid #d9e0e4;
-      border-radius: 8px;
-      box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
-      padding: 16px;
+    .pane-right {
+      padding: 24px;
+      overflow: auto;
     }
 
-    h1,
-    h2 {
-      margin: 0 0 12px;
-      letter-spacing: 0;
+    .pane-left {
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      min-height: 0;
+    }
+
+    header {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--ink);
     }
 
     h1 {
-      font-size: 24px;
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    h1 .rule {
+      display: inline-block;
+      width: 1.3em;
+      border-bottom: 2px solid var(--accent);
+      margin: 0 0.35em 0 0;
+      transform: translateY(-0.35em);
+    }
+
+    .tagline {
+      margin: 4px 0 0;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-soft);
+      letter-spacing: 0.02em;
     }
 
     h2 {
-      font-size: 16px;
+      margin: 0 0 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-soft);
+      flex: none;
     }
 
-    label {
+    .field {
       display: grid;
       gap: 6px;
-      margin: 14px 0;
-      font-size: 13px;
-      font-weight: 650;
+      margin: 0 0 16px;
     }
 
-    input,
-    textarea,
-    button,
-    pre {
-      font: inherit;
+    .field-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-soft);
     }
 
-    input[type="file"] {
-      max-width: 100%;
-    }
-
-    textarea,
-    pre {
-      box-sizing: border-box;
+    input[type="text"],
+    textarea {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.5;
       width: 100%;
-      border: 1px solid #cbd5da;
-      border-radius: 8px;
-      background: #fbfcfd;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      background: var(--paper);
       color: inherit;
     }
 
+    input[type="text"] {
+      padding: 8px 10px;
+    }
+
     textarea {
-      min-height: 360px;
-      resize: vertical;
+      resize: none;
+      overflow-y: auto;
       padding: 12px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 13px;
-      line-height: 1.45;
     }
 
-    pre {
-      min-height: 520px;
-      overflow: auto;
-      padding: 14px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 13px;
-      line-height: 1.45;
+    /* --- Right pane: a top bar, then exactly one of input-view / output-view --- */
+
+    .view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex: none;
+      margin-bottom: 16px;
     }
 
-    .actions {
+    #input-view,
+    #output-view {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .mode-toggle {
+      display: flex;
+      border: 1px solid var(--ink);
+      border-radius: 4px;
+      overflow: hidden;
+      width: fit-content;
+      flex: none;
+    }
+
+    .mode-option {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      background: var(--panel);
+      color: var(--ink);
+      padding: 7px 16px;
+      cursor: pointer;
+    }
+
+    .mode-option+.mode-option {
+      border-left: 1px solid var(--ink);
+    }
+
+    .mode-option.is-active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    #journal-panel,
+    #csv-panel {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #journal-panel textarea {
+      flex: 1;
+      min-height: 0;
+    }
+
+    #csv-panel {
+      display: none;
+    }
+
+    .csv-field {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .csv-field textarea {
+      flex: 1;
+      min-height: 0;
+    }
+
+    #output {
+      flex: 1;
+      min-height: 0;
+      background: var(--ink);
+      color: #eef3f0;
+      border-color: var(--accent-ink);
+    }
+
+    .toggle-row {
+      display: flex;
+      gap: 18px;
+      margin: 4px 0 18px;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    .report-group {
+      margin-bottom: 14px;
+    }
+
+    .report-group-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-soft);
+      margin-bottom: 6px;
+    }
+
+    .report-group .buttons {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 14px;
+      gap: 6px;
     }
 
     button {
-      border: 1px solid #25636f;
-      border-radius: 6px;
-      background: #2d7784;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--accent-ink);
+      border-radius: 4px;
+      background: var(--accent);
       color: #fff;
       cursor: pointer;
-      font-weight: 700;
-      min-height: 38px;
-      padding: 8px 12px;
+      padding: 7px 12px;
+      min-height: 34px;
+      width: fit-content;
     }
 
     button.secondary {
-      background: #fff;
-      color: #25636f;
+      background: var(--panel);
+      color: var(--ink);
+      border-color: var(--rule);
     }
 
     button:disabled {
       cursor: not-allowed;
-      opacity: 0.55;
+      opacity: 0.4;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    .mode-option:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px dashed var(--rule);
+      margin: 20px 0;
     }
 
     .status {
-      min-height: 22px;
-      margin-top: 12px;
-      color: #47565f;
-      font-size: 13px;
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid var(--rule);
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      min-height: 1.4em;
     }
 
-    @media (max-width: 760px) {
+    @media (max-width: 780px) {
       main {
         grid-template-columns: 1fr;
-        padding: 12px;
+        grid-template-rows: 1fr auto;
+        height: auto;
+        min-height: 100vh;
       }
 
-      pre {
-        min-height: 320px;
+      .pane-left {
+        height: 80vh;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
       }
     }
   </style>
@@ -153,186 +332,265 @@
 
 <body>
   <main>
-    <section class="panel">
-      <h1>hledger WASM</h1>
+    <section class="pane pane-left">
+      <header>
+        <h1><span class="rule"></span>hledger WASM</h1>
+        <p class="tagline">hledger-lib, compiled to WebAssembly, running in this page</p>
+      </header>
 
-      <label>
-        Journal file
-        <input id="journal-file" type="file" />
-      </label>
+      <div class="view-bar">
+        <div class="mode-toggle" role="radiogroup" aria-label="Input format">
+          <button type="button" class="mode-option is-active" data-mode="journal">Journal</button>
+          <button type="button" class="mode-option" data-mode="csv">CSV</button>
+        </div>
+        <button id="view-toggle" class="secondary" type="button">View output</button>
+      </div>
 
-      <label>
-        Journal text
-        <textarea id="journal-text" spellcheck="false">2026-01-01 opening
-  assets:bank        $100
-  equity:opening
+      <div id="input-view">
+        <div id="journal-panel">
+          <label class="field-label" for="journal-text">Journal text</label>
+          <textarea id="journal-text" spellcheck="false">2026-01-01 opening
+    assets:bank        $100
+    equity:opening
 
 2026-01-02 coffee
-  expenses:food       $5
-  assets:bank
-</textarea>
-      </label>
+    expenses:food       $5
+    assets:bank</textarea>
+        </div>
 
-      <h3>Query filter (optional)</h3>
-      <input type="text" id="query-input" placeholder="e.g. acct:assets depth:2" size="40">
-      <div class="actions">
-        <button id="check">Check</button>
-        <button id="accounts">Accounts</button>
-        <button id="balance">Balance</button>
-        <button id="register">Register</button>
-        <button id="print">Print</button>
-        <button id="prices">Prices</button>
-        <button id="payees">Payees</button>
-        <button id="commodities">Commodities</button>
-        <button id="tags">Tags</button>
-        <button id="balancesheet">Balancesheet</button>
-        <button id="incomestatement">Incomestatement</button>
-        <button id="cashflow">Cashflow</button>
-        <button id="clear" class="secondary">Clear</button>
+        <div id="csv-panel">
+          <div class="csv-field">
+            <label class="field-label" for="csv-text">CSV data</label>
+            <textarea id="csv-text" spellcheck="false">"Date","Notes","Amount"
+"2026/02/22","WHOLE FOODS","50.00"
+"2026/02/23","TRANSFER TO SAVINGS","-10.00"
+</textarea>
+          </div>
+          <div class="csv-field">
+            <label class="field-label" for="csv-rules-text">CSV rules</label>
+            <textarea id="csv-rules-text" spellcheck="false"># Skip the header row
+skip 1
+
+# Map the CSV columns to hledger fields
+fields date, description, amount
+
+# Assign defaults and conditional categorization
+currency $
+account1 assets:bank:checking
+
+# Categorize based on keywords in the description
+if WHOLE FOODS
+    account2 expenses:food
+
+if TRANSFER TO SAVINGS
+    account2 assets:bank:savings
+</textarea>
+          </div>
+        </div>
       </div>
 
-      <div id="status" class="status">
-        Uses ./wasm/hledger-wasm.wasm unless a WASM file is selected.
+      <div id="output-view" style="display: none;">
+        <h2>Output</h2>
+        <textarea id="output" readonly spellcheck="false">Waiting for a journal to load.</textarea>
       </div>
     </section>
+    <section class="pane pane-right">
+      <div class="field">
+        <label class="field-label" for="query-input">Query filter (optional)</label>
+        <input type="text" id="query-input" placeholder="e.g. acct:assets depth:2" />
+      </div>
 
-    <section class="panel">
-      <h2>Output</h2>
-      <pre id="output">Build hledger-wasm.wasm, then run a command.</pre>
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="forecast-toggle" /> Forecast</label>
+        <label class="toggle"><input type="checkbox" id="check-strict-toggle" /> Strict check</label>
+      </div>
+
+      <hr class="divider" />
+
+      <div id="report-groups"></div>
+
+      <button id="clear" class="secondary" style="margin-top: 4px;">Clear output</button>
+
+      <div id="status" class="status">Loading WASM module...</div>
     </section>
   </main>
 
   <script type="module">
     import { HledgerSession } from "./js/hledger.js";
 
-    const session = await HledgerSession.create();
-
-    const journalInput = document.querySelector("#journal-file");
     const journalText = document.querySelector("#journal-text");
+    const csvText = document.querySelector("#csv-text");
+    const csvRulesText = document.querySelector("#csv-rules-text");
+    const journalPanel = document.querySelector("#journal-panel");
+    const csvPanel = document.querySelector("#csv-panel");
+    const queryInput = document.querySelector("#query-input");
+    const forecastToggle = document.querySelector("#forecast-toggle");
+    const checkStrictToggle = document.querySelector("#check-strict-toggle");
     const output = document.querySelector("#output");
     const status = document.querySelector("#status");
-    const reportButtons = [
-      document.querySelector("#check"),
-      document.querySelector("#accounts"),
-      document.querySelector("#balance"),
-    ];
+    const reportGroupsContainer = document.querySelector("#report-groups");
+    const clearButton = document.querySelector("#clear");
+    const viewToggleButton = document.querySelector("#view-toggle");
+    const inputView = document.querySelector("#input-view");
+    const outputView = document.querySelector("#output-view");
 
-    let debounceTimer = null;
+    let mode = "journal"; // "journal" | "csv"
+    let view = "input";   // "input" | "output"
 
-    const result = await session.loadJournal(journalText.value);
-    if (session.isLoaded) {
-      status.textContent = "Journal loaded.";
-      output.textContent = "Journal loaded.";
-    } else {
-      status.textContent = "Journal error: " + result.error;
-      output.textContent = "Journal error: " + result.error;
+    // --- View toggle: exactly one of input/output is visible at a time --
+    function setView(next) {
+      view = next;
+      inputView.style.display = view === "input" ? "flex" : "none";
+      outputView.style.display = view === "output" ? "flex" : "none";
+      viewToggleButton.textContent = view === "input" ? "View output" : "View input";
     }
 
-    async function reparse() {
-      const result = await session.loadJournal(journalText.value);
-      if (result.ok) {
-        status.textContent = "Journal loaded.";
-      } else {
-        status.textContent = "Journal error: " + result.error;
+    viewToggleButton.addEventListener("click", () => setView(view === "input" ? "output" : "input"));
+
+    // --- Report button definitions -------------------------------------
+    // One place describes every report button: its group, label, and what
+    // it actually calls. The markup and the click wiring are both generated
+    // from this table below, instead of writing each button and handler
+    // out by hand.
+    const reportGroups = [
+      {
+        label: "Validate",
+        items: [
+          {
+            id: "check", label: "Check",
+            run: (q) => checkStrictToggle.checked ? session.checkStrict(q) : session.check(q),
+          },
+        ],
+      },
+      {
+        label: "Listings",
+        items: [
+          { id: "accounts", label: "Accounts", run: (q) => session.accounts(q) },
+          { id: "payees", label: "Payees", run: (q) => session.payees(q) },
+          { id: "commodities", label: "Commodities", run: (q) => session.commodities(q) },
+          { id: "tags", label: "Tags", run: (q) => session.tags(q) },
+        ],
+      },
+      {
+        label: "Reports",
+        items: [
+          { id: "balance", label: "Balance", run: (q) => session.balance(q) },
+          { id: "register", label: "Register", run: (q) => session.register(q) },
+          { id: "print", label: "Print", run: (q) => session.print(q) },
+          { id: "prices", label: "Prices", run: (q) => session.prices(q) },
+        ],
+      },
+      {
+        label: "Statements",
+        items: [
+          { id: "balancesheet", label: "Balance sheet", run: (q) => session.balancesheet(q) },
+          { id: "incomestatement", label: "Income statement", run: (q) => session.incomestatement(q) },
+          { id: "cashflow", label: "Cash flow", run: (q) => session.cashflow(q) },
+        ],
+      },
+    ];
+
+    const reportButtons = [];
+
+    for (const group of reportGroups) {
+      const groupEl = document.createElement("div");
+      groupEl.className = "report-group";
+
+      const labelEl = document.createElement("div");
+      labelEl.className = "report-group-label";
+      labelEl.textContent = group.label;
+      groupEl.appendChild(labelEl);
+
+      const buttonsEl = document.createElement("div");
+      buttonsEl.className = "buttons";
+
+      for (const item of group.items) {
+        const btn = document.createElement("button");
+        btn.id = item.id;
+        btn.textContent = item.label;
+        btn.disabled = true;
+        btn.addEventListener("click", () => {
+          if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
+          runReport(item.label, () => item.run(queryInput.value));
+        });
+        buttonsEl.appendChild(btn);
+        reportButtons.push(btn);
       }
-      setReportButtonsEnabled(session.isLoaded);
+
+      groupEl.appendChild(buttonsEl);
+      reportGroupsContainer.appendChild(groupEl);
     }
 
     function setReportButtonsEnabled(enabled) {
       for (const btn of reportButtons) btn.disabled = !enabled;
     }
 
+    // --- Session lifecycle ----------------------------------------------
+    const session = await HledgerSession.create();
+
+    let debounceTimer = null;
+
     function scheduleReparse() {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(reparse, 300);
     }
 
-    await reparse(); // parse the default sample text once, before wiring up any listeners
+    async function reparse() {
+      setReportButtonsEnabled(false);
+      const forecast = forecastToggle.checked;
+
+      const result = mode === "csv"
+        ? await session.parseCsv(csvText.value, csvRulesText.value, forecast)
+        : await session.loadJournal(journalText.value, forecast);
+
+      status.textContent = result.ok
+        ? "Journal loaded."
+        : "Journal error: " + result.error;
+      setReportButtonsEnabled(session.isLoaded);
+    }
+
+    function setMode(next) {
+      mode = next;
+      journalPanel.style.display = mode === "journal" ? "flex" : "none";
+      csvPanel.style.display = mode === "csv" ? "flex" : "none";
+      for (const btn of document.querySelectorAll(".mode-option")) {
+        btn.classList.toggle("is-active", btn.dataset.mode === mode);
+      }
+      reparse();
+    }
+
+    for (const btn of document.querySelectorAll(".mode-option")) {
+      btn.addEventListener("click", () => setMode(btn.dataset.mode));
+    }
 
     journalText.addEventListener("input", scheduleReparse);
+    csvText.addEventListener("input", scheduleReparse);
+    csvRulesText.addEventListener("input", scheduleReparse);
+    forecastToggle.addEventListener("change", reparse);
 
-    journalInput.addEventListener("change", async () => {
-      const file = journalInput.files[0];
-      if (!file) return;
-      journalText.value = await file.text();
-      await reparse();
-    });
-
-    const queryInput = document.querySelector("#query-input");
-    document.querySelector("#check").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("check", () => session.check(queryInput.value));
-    });
-    document.querySelector("#accounts").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("accounts", () => session.accounts(queryInput.value));
-    });
-    document.querySelector("#balance").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("balance", () => session.balance(queryInput.value));
-    });
-    document.querySelector("#register").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("register", () => session.register(queryInput.value));
-    });
-    document.querySelector("#print").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("print", () => session.print(queryInput.value));
-    });
-    document.querySelector("#prices").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("prices", () => session.prices(queryInput.value));
-    });
-    document.querySelector("#payees").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("payees", () => session.payees(queryInput.value));
-    });
-    document.querySelector("#commodities").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("commodities", () => session.commodities(queryInput.value));
-    });
-    document.querySelector("#tags").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("tags", () => session.tags(queryInput.value));
-    });
-    document.querySelector("#balancesheet").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("balancesheet", () => session.balancesheet(queryInput.value));
-    });
-    document.querySelector("#incomestatement").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("incomestatement", () => session.incomestatement(queryInput.value));
-    });
-    document.querySelector("#cashflow").addEventListener("click", () => {
-      if (!session.isLoaded) { status.textContent = "No valid journal loaded."; return; }
-      run("cashflow", () => session.cashflow(queryInput.value));
-    });
-    document.querySelector("#clear").addEventListener("click", () => {
-      output.textContent = "";
+    clearButton.addEventListener("click", () => {
+      output.value = "";
       status.textContent = "Output cleared.";
+      setView("output");
     });
 
-    async function run(name, action) {
-      setBusy(true);
-      status.textContent = `Running ${name}...`;
+    async function runReport(label, action) {
+      setView("output");
+      setReportButtonsEnabled(false);
+      status.textContent = `Running ${label}...`;
       try {
         const result = await action();
-        output.textContent = JSON.stringify(result, null, 2);
-        status.textContent = `${name} finished.`;
+        output.value = JSON.stringify(result, null, 2);
+        status.textContent = `${label} finished.`;
       } catch (error) {
-        output.textContent = error.stack || String(error);
-        status.textContent = `${name} failed.`;
+        output.value = error.stack || String(error);
+        status.textContent = `${label} failed.`;
       } finally {
-        setBusy(false);
-        setReportButtonsEnabled(session.isLoaded); // restore correct state, don't just blanket re-enable
+        setReportButtonsEnabled(session.isLoaded);
       }
     }
 
-    function setBusy(busy) {
-      for (const button of document.querySelectorAll("button")) {
-        button.disabled = busy;
-      }
-    }
+    await reparse();
   </script>
 </body>
 

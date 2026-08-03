@@ -8,14 +8,16 @@ import qualified Data.Map.Strict as Map
 import Data.IORef
 import System.IO.Unsafe (unsafePerformIO)
 import Control.Monad.Except (runExceptT)
-import Data.Aeson (encode, object, (.=), toJSON)
+import Data.Aeson (encode, object, (.=), toJSON, Value)
 import qualified Data.ByteString.Lazy.Char8 as BLC
 import Data.Aeson.Types (Pair)
+import Data.Time.Clock (getCurrentTime, utctDay)
 
-import Hledger.Read (parseAndFinaliseJournal, definputopts, InputOpts, balancingopts_)
+import Hledger.Read (parseAndFinaliseJournal, forecast_, _ioDay, definputopts, InputOpts, balancingopts_)
 import Hledger.Data.Balancing (BalancingOpts(..))
 import Hledger.Read.JournalReader (journalp)
-import Hledger.Data.Types (Journal, jpricedirectives, AccountType(..), MixedAmount)
+import Hledger.Read.RulesReader (readRules, readJournalFromCsv)
+import Hledger.Data.Types (Journal, jpricedirectives, AccountType(..), MixedAmount, DateSpan(..))
 import Hledger.Data.Journal
   ( journalAccountNames
   , journalPayeesDeclaredOrUsed
@@ -28,7 +30,17 @@ import Hledger.Reports.EntriesReport (entriesReport)
 import Hledger.Reports.ReportOptions
   (defreportopts, ReportSpec, ReportOpts(..), reportOptsToSpec)
 import Data.Time.Clock (getCurrentTime, utctDay)
-import Hledger.Data.JournalChecks (journalCheckBalanceAssertions)
+import Hledger.Data.JournalChecks
+  ( journalCheckBalanceAssertions
+  , journalCheckOrdereddates
+  , journalCheckAccounts
+  , journalCheckCommodities
+  , journalCheckPayees
+  , journalCheckTags
+  , journalCheckPairedConversionPostings
+  , journalCheckRecentAssertions
+  , journalCheckUniqueleafnames
+  )
 
 import Hledger.Query (Query(..))
 import Hledger.Data.Types (Journal, jpricedirectives, AccountType(..))
@@ -39,7 +51,8 @@ import Hledger.Reports.ReportTypes (CBCSubreportSpec(..), DisplayName, CompoundP
 journalTable :: IORef (Map.Map Int Journal, Int)
 journalTable = unsafePerformIO (newIORef (Map.empty, 0))
 
-foreign export javascript "parseJournal" hs_parseJournal :: JSString -> IO JSString
+foreign export javascript "parseJournal" hs_parseJournal :: JSString -> JSString -> IO JSString
+foreign export javascript "parseCsv" hs_parseCsv :: JSString -> JSString -> IO JSString
 foreign export javascript "runReport" hs_runReport :: Int -> JSString -> JSString -> IO JSString
 foreign export javascript "freeJournal" hs_freeJournal :: Int -> IO ()
 
@@ -72,22 +85,64 @@ cashflowReport rspec j = compoundBalanceReport rspec j
 
 
 
-parseOpts :: InputOpts
-parseOpts = definputopts
-  { balancingopts_ = (balancingopts_ definputopts) { ignore_assertions_ = True } }
-hs_parseJournal :: JSString -> IO JSString
-hs_parseJournal jstext = do
+defaultChecks :: [(T.Text, Journal -> Either String ())]
+defaultChecks =
+  [ ("ordereddates", journalCheckOrdereddates)
+  , ("balanceassertions", journalCheckBalanceAssertions)
+  ]
+
+strictChecks :: [(T.Text, Journal -> Either String ())]
+strictChecks = defaultChecks ++
+  [ ("commodities", journalCheckCommodities)
+  , ("accounts", journalCheckAccounts)
+  , ("tags", journalCheckTags)
+  , ("recentassertions", journalCheckRecentAssertions)
+  , ("pairedconversion", journalCheckPairedConversionPostings)
+  , ("uniqueleafnames", journalCheckUniqueleafnames)
+  ]
+
+runChecks :: [(T.Text, Journal -> Either String ())] -> Journal -> Value
+runChecks checks journal = toJSON
+  [ case fn journal of
+      Left err -> object ["name" .= name, "valid" .= False, "error" .= err]
+      Right () -> object ["name" .= name, "valid" .= True]
+  | (name, fn) <- checks
+  ]
+
+
+hs_parseJournal :: JSString -> JSString -> IO JSString
+hs_parseJournal jstext jsForecast = do
+  today <- utctDay <$> getCurrentTime
   let journalText = T.pack (fromJSString jstext)
+  let forecastEnabled = not (null (fromJSString jsForecast))
+  let parseOpts = definputopts
+        { balancingopts_ = (balancingopts_ definputopts) { ignore_assertions_ = True }
+        , forecast_ = if forecastEnabled then Just (DateSpan Nothing Nothing) else Nothing
+        , _ioDay = today
+        }
   result <- runExceptT $
     parseAndFinaliseJournal (journalp parseOpts) parseOpts "input" journalText
   case result of
-    Left err -> pure . toJSString . BLC.unpack . encode $
-      object ["ok" .= False, "error" .= err]
+    Left err -> jsonResponse ["ok" .= False, "error" .= err]
     Right j -> do
       handle <- atomicModifyIORef' journalTable $ \(tbl, nextId) ->
         ((Map.insert nextId j tbl, nextId + 1), nextId)
-      pure . toJSString . BLC.unpack . encode $
-        object ["ok" .= True, "handle" .= handle]
+      jsonResponse ["ok" .= True, "handle" .= handle]
+
+
+hs_parseCsv :: JSString -> JSString -> IO JSString
+hs_parseCsv jsCsvText jsRulesPath = do
+  let csvText = T.pack (fromJSString jsCsvText)
+  let rulesPath = fromJSString jsRulesPath
+  result <- runExceptT $ do
+    rules <- readRules rulesPath
+    readJournalFromCsv rules rulesPath csvText Nothing
+  case result of
+    Left err -> jsonResponse ["ok" .= False, "error" .= err]
+    Right j -> do
+      handle <- atomicModifyIORef' journalTable $ \(tbl, nextId) ->
+        ((Map.insert nextId j tbl, nextId + 1), nextId)
+      jsonResponse ["ok" .= True, "handle" .= handle]
 
 
 jsonResponse :: [Pair] -> IO JSString
@@ -108,11 +163,10 @@ hs_runReport handle jsReportName jsQuery = do
             ["ok" .= True, "data" .= journalAccountNames journal]
           "balance" -> jsonResponse
             ["ok" .= True, "data" .= toJSON (balanceReport rspec journal)]
-          "check" -> case journalCheckBalanceAssertions journal of
-            Left err -> jsonResponse
-              ["ok" .= True, "data" .= object ["valid" .= False, "error" .= err]]
-            Right () -> jsonResponse
-              ["ok" .= True, "data" .= object ["valid" .= True]]
+          "check" -> jsonResponse
+            ["ok" .= True, "data" .= runChecks defaultChecks journal]
+          "checkstrict" -> jsonResponse
+            ["ok" .= True, "data" .= runChecks strictChecks journal]
           "register" -> jsonResponse
             ["ok" .= True, "data" .= toJSON (postingsReport rspec journal)]
           "print" -> jsonResponse
