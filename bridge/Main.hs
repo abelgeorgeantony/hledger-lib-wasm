@@ -12,26 +12,34 @@ import Data.Aeson (encode, object, (.=), toJSON, Value)
 import qualified Data.ByteString.Lazy.Char8 as BLC
 import Data.Aeson.Types (Pair)
 import Data.Time.Clock (getCurrentTime, utctDay)
+import Data.Time.Calendar (toGregorian, fromGregorian, Day)
+import Data.List (nub, minimumBy)
+import Data.Ord (comparing)
 
 import Hledger.Read (parseAndFinaliseJournal, forecast_, _ioDay, definputopts, InputOpts, balancingopts_)
 import Hledger.Data.Balancing (BalancingOpts(..), defbalancingopts)
 import Hledger.Read.JournalReader (journalp)
 import Hledger.Read.RulesReader (readRules, readJournalFromCsv)
-import Hledger.Data.Types (Journal, jpricedirectives, AccountType(..), MixedAmount, DateSpan(..))
+import Hledger.Data.Types 
+  ( Journal, jpricedirectives, AccountType(..)
+  , MixedAmount, DateSpan(..), EFDay(..), Interval(..)
+  , jperiodictxns, ptinterval
+  )
 import Hledger.Data.Journal
   ( journalAccountNames
   , journalPayeesDeclaredOrUsed
   , journalCommoditiesUsed
   , journalTagsDeclaredOrUsed
+  , journalDateSpan
   )
 import Hledger.Data.Transaction (showTransaction)
 import Hledger.Reports.BalanceReport (balanceReport)
 import Hledger.Reports.PostingsReport (postingsReport)
 import Hledger.Reports.EntriesReport (entriesReport)
-import Hledger.Reports.BudgetReport (budgetReport)
+import Hledger.Reports.BudgetReport (BudgetReport)
+import qualified Hledger.Reports.BudgetReport as Lib
 import Hledger.Reports.ReportOptions
-  (defreportopts, ReportSpec, ReportOpts(..), reportOptsToSpec)
-import Data.Time.Clock (getCurrentTime, utctDay)
+  (defreportopts, ReportSpec(..), ReportOpts(..), reportOptsToSpec)
 import Hledger.Data.JournalChecks
   ( journalCheckBalanceAssertions
   , journalCheckOrdereddates
@@ -44,20 +52,50 @@ import Hledger.Data.JournalChecks
   , journalCheckUniqueleafnames
   )
 
-import Hledger.Query (Query(..))
-import Hledger.Data.Types (Journal, jpricedirectives, AccountType(..))
+import Hledger.Query (Query(..), queryDateSpan')
 import Hledger.Reports.MultiBalanceReport (compoundBalanceReport)
 import Hledger.Reports.ReportTypes (CBCSubreportSpec(..), DisplayName, CompoundPeriodicReport)
+
 
 {-# NOINLINE journalTable #-}
 journalTable :: IORef (Map.Map Int Journal, Int)
 journalTable = unsafePerformIO (newIORef (Map.empty, 0))
 
+
+efDayToDay :: EFDay -> Day
+efDayToDay (Exact d) = d
+efDayToDay (Flex d)  = d
+
+widenToYears :: DateSpan -> DateSpan
+widenToYears (DateSpan (Just s) (Just e)) =
+  let (sy, _, _) = toGregorian (efDayToDay s)
+      (ey, _, _) = toGregorian (efDayToDay e)
+  in DateSpan (Just (Exact (fromGregorian sy 1 1))) (Just (Exact (fromGregorian (ey + 1) 1 1)))
+widenToYears _ = DateSpan Nothing Nothing  -- no real transactions at all; nothing to bracket
+
+intervalRank :: Interval -> Int
+intervalRank NoInterval              = maxBound
+intervalRank (Days n)                = n
+intervalRank (Weeks n)               = n * 7
+intervalRank (Months n)              = n * 30
+intervalRank (Quarters n)            = n * 91
+intervalRank (Years n)               = n * 365
+intervalRank (NthWeekdayOfMonth _ _) = 30
+intervalRank (MonthDay _)            = 30
+intervalRank (MonthAndDay _ _)       = 365
+intervalRank (DaysOfWeek _)          = 7
+
+inferBudgetInterval :: Journal -> Interval
+inferBudgetInterval journal =
+  case nub [ ptinterval pt | pt <- jperiodictxns journal, ptinterval pt /= NoInterval ] of
+    []  -> NoInterval
+    is  -> minimumBy (comparing intervalRank) is
+
+
 foreign export javascript "parseJournal" hs_parseJournal :: JSString -> JSString -> IO JSString
 foreign export javascript "parseCsv" hs_parseCsv :: JSString -> JSString -> IO JSString
 foreign export javascript "runReport" hs_runReport :: Int -> JSString -> JSString -> IO JSString
 foreign export javascript "freeJournal" hs_freeJournal :: Int -> IO ()
-
 
 
 mkSubreport :: T.Text -> [AccountType] -> Bool -> CBCSubreportSpec DisplayName
@@ -84,16 +122,6 @@ incomeStatementReport rspec j = compoundBalanceReport rspec j
 cashflowReport :: ReportSpec -> Journal -> CompoundPeriodicReport DisplayName MixedAmount
 cashflowReport rspec j = compoundBalanceReport rspec j
   [ mkSubreport "Cash flows" [Cash] True ]
-
---budgetReport :: ReportSpec -> BalancingOpts -> DateSpan -> Journal -> BudgetReport
---budgetReport rspec bopts reqspan j = 
---  let
---    actualsReport = multiBalanceReport rspec bopts j
---    budgetj       = journalWithBudgetTransactions reqspan j
---    budgetsReport = multiBalanceReport rspec bopts budgetj
---  in 
---    buildBudgetReport actualsReport budgetsReport
-
 
 
 defaultChecks :: [(T.Text, Journal -> Either String ())]
@@ -198,8 +226,17 @@ hs_runReport handle jsReportName jsQuery = do
             ["ok" .= True, "data" .= toJSON (incomeStatementReport rspec journal)]
           "cashflow" -> jsonResponse
             ["ok" .= True, "data" .= toJSON (cashflowReport rspec journal)]
-          "budget" -> jsonResponse
-            ["ok" .= True, "data" .= toJSON (budgetReport rspec defbalancingopts (DateSpan Nothing Nothing) journal)]
+          "budget" -> do
+            let ropts' = (_rsReportOpts rspec) { interval_ = inferBudgetInterval journal }
+            case reportOptsToSpec today ropts' of
+              Left err -> jsonResponse ["ok" .= False, "error" .= ("bad query: " ++ err)]
+              Right budgetRspec -> do
+                let qspan = queryDateSpan' (_rsQuery budgetRspec)
+                let reportspan = if qspan == DateSpan Nothing Nothing
+                                  then widenToYears (journalDateSpan False journal)
+                                  else qspan
+                jsonResponse
+                  ["ok" .= True, "data" .= toJSON (Lib.budgetReport budgetRspec defbalancingopts reportspan journal)]
           other -> jsonResponse
             ["ok" .= False, "error" .= ("unknown report: " ++ other)]
 

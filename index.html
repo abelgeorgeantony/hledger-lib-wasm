@@ -179,8 +179,17 @@
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 0.3; transform: scale(0.85); }
-      50% { opacity: 1; transform: scale(1.15); }
+
+      0%,
+      100% {
+        opacity: 0.3;
+        transform: scale(0.85);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.15);
+      }
     }
 
     /* --- View bar & Top Controls --- */
@@ -236,8 +245,15 @@
       flex: 1;
       min-height: 0;
       display: flex;
-      flex-direction: column;
       gap: 10px;
+    }
+
+    #journal-panel {
+      flex-direction: column;
+    }
+
+    #csv-panel {
+      flex-direction: row;
     }
 
     #journal-panel textarea {
@@ -607,7 +623,7 @@ if TRANSFER TO SAVINGS
       } else {
         setStatus(`${mode.toUpperCase()} error: ${result.error}`, "error");
       }
-      
+
       setReportButtonsEnabled(session.isLoaded);
     }
 
@@ -623,7 +639,10 @@ if TRANSFER TO SAVINGS
     }
 
     for (const btn of document.querySelectorAll(".mode-option")) {
-      btn.addEventListener("click", () => setMode(btn.dataset.mode));
+      btn.addEventListener("click", () => {
+        setMode(btn.dataset.mode);
+        setView("input");
+      });
     }
 
     journalText.addEventListener("input", scheduleReparse);
