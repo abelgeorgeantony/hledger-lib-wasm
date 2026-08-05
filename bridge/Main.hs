@@ -17,13 +17,14 @@ import Data.List (nub, minimumBy)
 import Data.Ord (comparing)
 
 import Hledger.Read (parseAndFinaliseJournal, forecast_, _ioDay, definputopts, InputOpts, balancingopts_)
-import Hledger.Data.Balancing (BalancingOpts(..), defbalancingopts)
+import Hledger.Data.Balancing (BalancingOpts(..), defbalancingopts, journalBalanceTransactions)
 import Hledger.Read.JournalReader (journalp)
 import Hledger.Read.RulesReader (readRules, readJournalFromCsv)
 import Hledger.Data.Types 
   ( Journal, jpricedirectives, AccountType(..)
   , MixedAmount, DateSpan(..), EFDay(..), Interval(..)
   , jperiodictxns, ptinterval
+  , jtxns
   )
 import Hledger.Data.Journal
   ( journalAccountNames
@@ -95,6 +96,7 @@ inferBudgetInterval journal =
 foreign export javascript "parseJournal" hs_parseJournal :: JSString -> JSString -> IO JSString
 foreign export javascript "parseCsv" hs_parseCsv :: JSString -> JSString -> IO JSString
 foreign export javascript "runReport" hs_runReport :: Int -> JSString -> JSString -> IO JSString
+foreign export javascript "balanceTransaction" hs_balanceTransaction :: Int -> JSString -> IO JSString
 foreign export javascript "freeJournal" hs_freeJournal :: Int -> IO ()
 
 
@@ -239,6 +241,35 @@ hs_runReport handle jsReportName jsQuery = do
                   ["ok" .= True, "data" .= toJSON (Lib.budgetReport budgetRspec defbalancingopts reportspan journal)]
           other -> jsonResponse
             ["ok" .= False, "error" .= ("unknown report: " ++ other)]
+
+
+hs_balanceTransaction :: Int -> JSString -> IO JSString
+hs_balanceTransaction handle jsTxnText = do
+  (tbl, nextId) <- readIORef journalTable
+  case Map.lookup handle tbl of
+    Nothing -> jsonResponse ["ok" .= False, "error" .= ("invalid handle" :: String)]
+    Just journal -> do
+      today <- utctDay <$> getCurrentTime
+      let parseOpts = definputopts { _ioDay = today }
+      let txnText = T.pack (fromJSString jsTxnText)
+      
+      result <- runExceptT $ parseAndFinaliseJournal (journalp parseOpts) parseOpts "input" txnText
+      case result of
+        Left err -> jsonResponse ["ok" .= False, "error" .= err]
+        Right miniJournal -> case jtxns miniJournal of
+          [t] -> do
+            let j' = journal { jtxns = jtxns journal ++ [t] }
+            case journalBalanceTransactions defbalancingopts j' of
+              Right balancedJ -> do
+                -- KEY ADDITION: Save the updated journal back to WASM memory
+                writeIORef journalTable (Map.insert handle balancedJ tbl, nextId)
+                
+                case reverse (jtxns balancedJ) of
+                  (balancedT:_) -> jsonResponse ["ok" .= True, "data" .= showTransaction balancedT]
+                  [] -> jsonResponse ["ok" .= False, "error" .= ("unexpected empty journal" :: String)]
+              Left err -> jsonResponse ["ok" .= False, "error" .= err]
+          _ -> jsonResponse ["ok" .= False, "error" .= ("expected exactly one transaction" :: String)]
+
 
 hs_freeJournal :: Int -> IO ()
 hs_freeJournal handle =

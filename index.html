@@ -80,6 +80,12 @@
       margin: 0 0 16px;
     }
 
+    .field-row {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
     .field-label {
       font-family: var(--mono);
       font-size: 11px;
@@ -90,6 +96,7 @@
     }
 
     input[type="text"],
+    input[type="date"],
     textarea {
       font-family: var(--mono);
       font-size: 12.5px;
@@ -101,7 +108,8 @@
       color: inherit;
     }
 
-    input[type="text"] {
+    input[type="text"],
+    input[type="date"] {
       padding: 8px 10px;
     }
 
@@ -374,6 +382,87 @@
       letter-spacing: 0.02em;
     }
 
+    /* --- Modal Dialog --- */
+    .modal {
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--ink);
+      padding: 24px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal::backdrop {
+      background: rgba(26, 36, 32, 0.4);
+      backdrop-filter: blur(2px);
+    }
+
+    .modal h2 {
+      font-size: 14px;
+      margin-bottom: 20px;
+      color: var(--ink);
+    }
+
+    /* Toggle Switch Styles */
+    .switch-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .switch-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary, #555);
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; 
+      left: 0; 
+      right: 0; 
+      bottom: 0;
+      background-color: #ccc;
+      transition: background-color 0.2s ease;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: transform 0.2s ease;
+      border-radius: 50%;
+    }
+    .switch input:checked + .slider {
+      background-color: var(--primary, #2563eb);
+    }
+    .switch input:checked + .slider:before {
+      transform: translateX(16px);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 24px;
+    }
+
     @media (max-width: 780px) {
       main {
         grid-template-columns: 1fr;
@@ -384,6 +473,10 @@
 
       .pane-left {
         height: 70vh;
+      }
+
+      #csv-panel {
+        flex-direction: column;
       }
     }
 
@@ -461,6 +554,8 @@ if TRANSFER TO SAVINGS
     </section>
 
     <section class="pane pane-right">
+      <button type="button" id="addtxnbtn" style="margin-bottom: 16px;">Add new transaction</button>
+
       <div class="field">
         <label class="field-label" for="query-input">Query filter (optional)</label>
         <input type="text" id="query-input" placeholder="e.g. acct:assets depth:2" />
@@ -474,8 +569,72 @@ if TRANSFER TO SAVINGS
       <div id="report-groups"></div>
 
       <button id="clear" class="secondary" style="margin-top: 4px;">Clear output</button>
-
     </section>
+
+    <!-- Modal Form for Adding Transaction with Raw Text Toggle -->
+    <dialog id="txn-modal" class="modal">
+      <form method="dialog" id="txn-form">
+        <div id="modal-status" class="status-banner" data-state="info" style="margin-bottom: 16px;">
+          <span class="status-dot"></span>
+          <span id="modal-status-text">Fill in transaction details</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2 style="margin: 0;">Add New Transaction</h2>
+          <div class="switch-container">
+            <span class="switch-label">Raw Text</span>
+            <label class="switch">
+              <input type="checkbox" id="raw-toggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Visual Input UI Container -->
+        <div id="visual-txn-ui">
+          <div class="field-row" style="grid-template-columns: 1fr 2fr;">
+            <div class="field" style="margin-bottom: 0;">
+              <label class="field-label" for="txn-date">Date</label>
+              <input type="date" id="txn-date" required />
+            </div>
+            <div class="field" style="margin-bottom: 0;">
+              <label class="field-label" for="txn-desc">Description</label>
+              <input type="text" id="txn-desc" placeholder="e.g. Groceries" required />
+            </div>
+          </div>
+
+          <div class="field" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label class="field-label" style="margin: 0;">Postings</label>
+              <button type="button" class="secondary" id="add-posting-btn" style="padding: 2px 8px; min-height: 24px; font-size: 11px;">+ Add Posting</button>
+            </div>
+            <div id="postings-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+              <div class="posting-row" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;">
+                <input type="text" class="post-acct" placeholder="Account (e.g. expenses:food)" required />
+                <input type="text" class="post-amt" placeholder="Amount (optional)" />
+                <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
+              </div>
+              <div class="posting-row" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;">
+                <input type="text" class="post-acct" placeholder="Account (e.g. assets:bank)" required />
+                <input type="text" class="post-amt" placeholder="Amount (optional)" />
+                <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw Text Area Container -->
+        <div id="raw-txn-container" class="field" style="display: none; margin-bottom: 0;">
+          <label class="field-label" for="raw-txn-input">Raw Transaction Text</label>
+          <textarea id="raw-txn-input" readonly rows="8" spellcheck="false" style="font-family: var(--mono); width: 100%;"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="secondary" id="cancel-txn-btn">Cancel</button>
+          <button type="button" id="submit-txn-btn">Add Transaction</button>
+        </div>
+      </form>
+    </dialog>
   </main>
 
   <script type="module">
@@ -498,12 +657,46 @@ if TRANSFER TO SAVINGS
     const inputView = document.querySelector("#input-view");
     const outputView = document.querySelector("#output-view");
 
+    // Modal Elements
+    const txnModal = document.getElementById("txn-modal");
+    const modalStatusBanner = document.getElementById("modal-status");
+    const rawToggle = document.getElementById("raw-toggle");
+    const visualTxnUi = document.getElementById("visual-txn-ui");
+    const rawTxnContainer = document.getElementById("raw-txn-container");
+    const rawTxnInput = document.getElementById("raw-txn-input");
+    const txnDate = document.getElementById("txn-date");
+    const txnDesc = document.getElementById("txn-desc");
+    const postingsContainer = document.getElementById("postings-container");
+    const addPostingBtn = document.getElementById("add-posting-btn");
+    const cancelTxnBtn = document.getElementById("cancel-txn-btn");
+    const submitTxnBtn = document.getElementById("submit-txn-btn");
+
     let mode = "journal"; // "journal" | "csv"
     let view = "input";   // "input" | "output"
 
-    function setStatus(text, state = "info") {
-      statusText.textContent = text;
-      statusBanner.dataset.state = state;
+    function setStatus(text, state = "info", banner = statusBanner) {
+      const textEl = banner.querySelector("span:last-child");
+      if (textEl) textEl.textContent = text;
+      banner.dataset.state = state;
+    }
+
+    function buildTransactionText() {
+      const dateVal = txnDate.value;
+      const descVal = txnDesc.value.trim();
+      const postingRows = postingsContainer.querySelectorAll(".posting-row");
+
+      let rawTxnText = `${dateVal} ${descVal}`;
+      for (const row of postingRows) {
+        const acct = row.querySelector(".post-acct").value.trim();
+        const amt = row.querySelector(".post-amt").value.trim();
+        if (acct) {
+          rawTxnText += `\n    ${acct}`;
+          if (amt) {
+            rawTxnText += `    ${amt}`;
+          }
+        }
+      }
+      return rawTxnText;
     }
 
     // --- View toggle ----------------------------------------------------
@@ -515,6 +708,153 @@ if TRANSFER TO SAVINGS
     }
 
     viewToggleButton.addEventListener("click", () => setView(view === "input" ? "output" : "input"));
+
+    // --- Raw toggle ----------------------------------------------------
+    rawToggle.addEventListener("change", () => {
+      if (rawToggle.checked) {
+        rawTxnInput.value = buildTransactionText();
+        visualTxnUi.style.display = "none";
+        rawTxnContainer.style.display = "grid";
+      } else {
+        visualTxnUi.style.display = "block";
+        rawTxnContainer.style.display = "none";
+      }
+    });
+
+    // --- Modal Logic ----------------------------------------------------
+    document.getElementById("addtxnbtn").addEventListener("click", () => {
+      // Clear fields and set date to today when opening
+      txnDate.value = new Date().toLocaleDateString("en-CA");
+      txnDesc.value = "";
+      // Reset values of the existing posting inputs
+      postingsContainer.querySelectorAll(".posting-row").forEach(row => {
+        row.querySelector(".post-acct").value = "";
+        row.querySelector(".post-amt").value = "";
+      });
+
+      rawToggle.checked = false;
+      visualTxnUi.style.display = "block";
+      rawTxnContainer.style.display = "none";
+      rawTxnInput.value = "";
+
+      setStatus("Fill in transaction details", "info", modalStatusBanner);
+      txnModal.showModal();
+    });
+
+    // Attach remove listeners to the initial hardcoded rows
+    document.querySelectorAll(".posting-row .remove-post-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const row = e.target.closest(".posting-row");
+        if (postingsContainer.children.length > 2) {
+          row.remove();
+        } else {
+          setStatus("A transaction must have at least 2 postings.", "error", modalStatusBanner);
+        }
+      });
+    });
+
+    function createPostingRow(account = "", amount = "") {
+      const row = document.createElement("div");
+      row.className = "posting-row";
+      row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
+      row.innerHTML = `
+        <input type="text" class="post-acct" placeholder="Account (e.g. expenses:food)" value="${account}" required />
+        <input type="text" class="post-amt" placeholder="Amount (optional)" value="${amount}" />
+        <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
+      `;
+
+      row.querySelector(".remove-post-btn").addEventListener("click", () => {
+        if (postingsContainer.children.length > 2) {
+          row.remove();
+        } else {
+          setStatus("A transaction must have at least 2 postings.", "error", modalStatusBanner);
+        }
+      });
+
+      return row;
+    }
+    addPostingBtn.addEventListener("click", () => {
+      postingsContainer.appendChild(createPostingRow());
+    });
+
+    cancelTxnBtn.addEventListener("click", () => {
+      txnModal.close();
+    });
+
+    submitTxnBtn.addEventListener("click", async () => {
+      let rawTxnText = "";
+
+      if (rawToggle.checked) {
+        rawTxnText = rawTxnInput.value.trim();
+        if (!rawTxnText) {
+          setStatus("Transaction text cannot be empty.", "error", modalStatusBanner);
+          return;
+        }
+      } else {
+        const dateVal = txnDate.value;
+        const descVal = txnDesc.value.trim();
+
+        if (!dateVal || !descVal) {
+          setStatus("Please fill in Date and Description.", "error", modalStatusBanner);
+          return;
+        }
+
+        const postingRows = postingsContainer.querySelectorAll(".posting-row");
+        if (postingRows.length < 2) {
+          setStatus("A transaction requires at least 2 postings.", "error", modalStatusBanner);
+          return;
+        }
+
+        for (const row of postingRows) {
+          const acct = row.querySelector(".post-acct").value.trim();
+          if (!acct) {
+            setStatus("All posting rows must have an account specified.", "error", modalStatusBanner);
+            return;
+          }
+        }
+
+        rawTxnText = buildTransactionText();
+      }
+
+      setStatus("Adding transaction...", "loading", modalStatusBanner);
+      setReportButtonsEnabled(false);
+
+      try {
+        // Send request to haskell
+        const result = await session.balanceTransaction(rawTxnText);
+
+        // Handle potential errors depending on how the wrapper handles them
+        if (result && result.error) {
+          setStatus(`Error adding transaction: ${result.error}`, "error", modalStatusBanner);
+          setReportButtonsEnabled(true);
+          return;
+        }
+
+        // Run a separate session.printText() to fetch the full canonical journal format
+        const printResult = await session.printText("");
+
+        // Extract the canonical string representation
+        const newJournalText = (printResult && typeof printResult.data === 'string')
+          ? printResult.data
+          : String(printResult);
+
+        // Replace the entire content of the journal to avoid mismatches
+        journalText.value = newJournalText;
+
+        // Make sure the journal mode is active so the user can see the update
+        setMode("journal");
+
+        // Force a reparse to sync everything cleanly
+        await reparse();
+
+        setStatus("Transaction added successfully.", "ok");
+        txnModal.close();
+      } catch (error) {
+        console.error(error);
+        setStatus("Failed to add transaction.", "error", modalStatusBanner);
+        setReportButtonsEnabled(true);
+      }
+    });
 
     // --- Report button definitions -------------------------------------
     const reportGroups = [

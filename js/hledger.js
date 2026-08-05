@@ -134,4 +134,12 @@ export class HledgerSession {
     if (result.ok) this.#handle = result.handle;
     return result;
   }
+
+  async balanceTransaction(txnText) {
+    if (!this.isLoaded) return { ok: false, error: "no journal loaded" };
+    const result = JSON.parse(
+      await this.#instance.exports.balanceTransaction(this.#handle, txnText)
+    );
+    return result;
+  }
 }
