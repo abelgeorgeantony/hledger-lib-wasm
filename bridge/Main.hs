@@ -98,6 +98,8 @@ foreign export javascript "parseJournal" hs_parseJournal :: JSString -> JSString
 foreign export javascript "parseCsv" hs_parseCsv :: JSString -> JSString -> IO JSString
 foreign export javascript "runReport" hs_runReport :: Int -> JSString -> JSString -> IO JSString
 foreign export javascript "balanceTransaction" hs_balanceTransaction :: Int -> JSString -> IO JSString
+foreign export javascript "updateTransaction" hs_updateTransaction :: Int -> Int -> JSString -> IO JSString
+foreign export javascript "deleteTransaction" hs_deleteTransaction :: Int -> Int -> IO JSString
 foreign export javascript "freeJournal" hs_freeJournal :: Int -> IO ()
 
 foreign export javascript "getJournalJSON" hs_getJournalJSON :: Int -> IO JSString
@@ -246,6 +248,44 @@ hs_runReport handle jsReportName jsQuery = do
             ["ok" .= False, "error" .= ("unknown report: " ++ other)]
 
 
+-- Parses a raw single transaction string into a Transaction AST node (Requires IO for ExceptT)
+parseTxnIO :: T.Text -> IO (Either String Transaction)
+parseTxnIO txt = do
+  today <- utctDay <$> getCurrentTime
+  let parseOpts = definputopts { _ioDay = today }
+  result <- runExceptT $ parseAndFinaliseJournal (journalp parseOpts) parseOpts "input" txt
+  pure $ case result of
+    Left err -> Left err
+    Right j  -> case jtxns j of
+      [t] -> Right t
+      []  -> Left "No valid transaction found in the input text."
+      _   -> Left "Expected exactly 1 transaction."
+
+-- Replace transaction at index i and validate balances
+replaceTxnAtIndex :: Int -> Transaction -> Journal -> Either String Journal
+replaceTxnAtIndex idx newTxn j =
+  let txns = jtxns j
+  in if idx < 0 || idx >= length txns
+     then Left "Transaction index out of bounds"
+     else 
+       let (before, _:after) = splitAt idx txns
+           updatedTxns       = before ++ [newTxn] ++ after
+           modifiedJournal   = j { jtxns = updatedTxns }
+       in journalBalanceTransactions defbalancingopts modifiedJournal
+
+-- Delete transaction at index i and validate balances
+deleteTxnAtIndex :: Int -> Journal -> Either String Journal
+deleteTxnAtIndex idx j =
+  let txns = jtxns j
+  in if idx < 0 || idx >= length txns
+     then Left "Transaction index out of bounds"
+     else 
+       let (before, _:after) = splitAt idx txns
+           updatedTxns       = before ++ after
+           modifiedJournal   = j { jtxns = updatedTxns }
+       in journalBalanceTransactions defbalancingopts modifiedJournal
+
+
 hs_balanceTransaction :: Int -> JSString -> IO JSString
 hs_balanceTransaction handle jsTxnText = do
   (tbl, nextId) <- readIORef journalTable
@@ -273,6 +313,36 @@ hs_balanceTransaction handle jsTxnText = do
               Left err -> jsonResponse ["ok" .= False, "error" .= err]
           _ -> jsonResponse ["ok" .= False, "error" .= ("expected exactly one transaction" :: String)]
 
+-- Export: updateTransaction
+hs_updateTransaction :: Int -> Int -> JSString -> IO JSString
+hs_updateTransaction handle idx jsTxnText = do
+  (tbl, _) <- readIORef journalTable
+  case Map.lookup handle tbl of
+    Nothing -> jsonResponse ["ok" .= False, "error" .= ("Invalid or expired session handle" :: String)]
+    Just journal -> do
+      let rawTxnText = T.pack (fromJSString jsTxnText)
+      parsed <- parseTxnIO rawTxnText
+      case parsed of
+        Left parseErr -> jsonResponse ["ok" .= False, "error" .= parseErr]
+        Right newTxn  -> case replaceTxnAtIndex idx newTxn journal of
+          Left err -> jsonResponse ["ok" .= False, "error" .= err]
+          Right updatedJournal -> do
+            -- Save back to WASM memory state
+            atomicModifyIORef' journalTable $ \(t, nextId) -> ((Map.insert handle updatedJournal t, nextId), ())
+            jsonResponse ["ok" .= True]
+
+-- Export: deleteTransaction
+hs_deleteTransaction :: Int -> Int -> IO JSString
+hs_deleteTransaction handle idx = do
+  (tbl, _) <- readIORef journalTable
+  case Map.lookup handle tbl of
+    Nothing -> jsonResponse ["ok" .= False, "error" .= ("Invalid or expired session handle" :: String)]
+    Just journal -> case deleteTxnAtIndex idx journal of
+      Left err -> jsonResponse ["ok" .= False, "error" .= err]
+      Right updatedJournal -> do
+        -- Save back to WASM memory state
+        atomicModifyIORef' journalTable $ \(t, nextId) -> ((Map.insert handle updatedJournal t, nextId), ())
+        jsonResponse ["ok" .= True]
 
 hs_freeJournal :: Int -> IO ()
 hs_freeJournal handle =

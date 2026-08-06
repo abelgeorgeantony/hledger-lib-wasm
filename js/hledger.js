@@ -143,6 +143,25 @@ export class HledgerSession {
     return result;
   }
 
+  async updateTransaction(index, txnText) {
+    if (!this.isLoaded) return { ok: false, error: "no journal loaded" };
+    
+    const result = JSON.parse(
+      await this.#instance.exports.updateTransaction(this.#handle, index, txnText)
+    );
+    
+    return result;
+  }
+
+  async deleteTransaction(index) {
+    if (!this.isLoaded) return { ok: false, error: "no journal loaded" };
+    
+    const result = JSON.parse(
+      await this.#instance.exports.deleteTransaction(this.#handle, index)
+    );
+    
+    return result;
+  }
 
 
   async getJournalJSON() {

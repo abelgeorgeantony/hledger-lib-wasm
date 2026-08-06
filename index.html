@@ -106,13 +106,14 @@
       border-radius: 4px;
       background: var(--paper);
       color: inherit;
-      transition: border-color 0.15s ease;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
     input[type="text"]:hover,
     input[type="date"]:hover,
     textarea:hover {
       border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
     }
 
     input[type="text"],
@@ -275,9 +276,20 @@
     #gui-panel {
       flex-direction: column;
       overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
       gap: 10px;
-      padding-right: 4px;
+      padding-right: 8px;
     }
+
+    
+    #gui-panel:hover {
+      scrollbar-color: color-mix(in srgb, var(--rule) 70%, transparent) transparent;
+    }
+    #gui-panel::-webkit-scrollbar { width: 8px; }
+    #gui-panel::-webkit-scrollbar-track { background: transparent; }
+    #gui-panel::-webkit-scrollbar-thumb { background: transparent; border-radius: 999px; }
+    #gui-panel:hover::-webkit-scrollbar-thumb { background: var(--rule); }
 
     #journal-panel textarea {
       flex: 1;
@@ -372,7 +384,7 @@
     .mode-option:focus-visible {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 1px var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
     }
 
     .divider {
@@ -781,7 +793,7 @@ if TRANSFER TO SAVINGS
       <button id="clear" class="secondary" style="margin-top: 4px;">Clear output</button>
     </section>
 
-    <!-- Modal Form for Adding Transaction -->
+    <!-- Modal Form for Adding/Editing Transaction -->
     <dialog id="txn-modal" class="modal">
       <form method="dialog" id="txn-form">
         <div id="modal-status" class="status-banner" data-state="info" style="margin-bottom: 16px;">
@@ -790,7 +802,7 @@ if TRANSFER TO SAVINGS
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h2 style="margin: 0;">Add New Transaction</h2>
+          <h2 id="modal-title" style="margin: 0;">Add New Transaction</h2>
           <div class="switch-container">
             <span class="switch-label">Raw Text</span>
             <label class="switch">
@@ -859,8 +871,10 @@ if TRANSFER TO SAVINGS
     const state = {
       mode: "journal", // "journal" | "csv"
       view: "input",   // "input" | "output"
-      isGui: false
+      isGui: true
     };
+
+    let editingTxnId = null; // Tracks the ID of the transaction currently being edited
 
     // --- Element Selectors ----------------------------------------------
     const journalText = document.querySelector("#journal-text");
@@ -883,6 +897,7 @@ if TRANSFER TO SAVINGS
 
     // Modal Elements
     const txnModal = document.getElementById("txn-modal");
+    const modalTitle = document.getElementById("modal-title");
     const modalStatusBanner = document.getElementById("modal-status");
     const rawToggle = document.getElementById("raw-toggle");
     const visualTxnUi = document.getElementById("visual-txn-ui");
@@ -928,6 +943,31 @@ if TRANSFER TO SAVINGS
         journalPanel.style.display = state.mode === "journal" ? "flex" : "none";
         csvPanel.style.display = state.mode === "csv" ? "flex" : "none";
       }
+    }
+
+    // --- State Synchronization Helper -------------------------------------
+    // Fixes the inconsistency when internal WASM state is mutated but textareas aren't
+    async function syncJournalTextToState() {
+      const printResult = await session.printText("");
+      let newText = "";
+      
+      if (printResult && typeof printResult.data === 'string') {
+        newText = printResult.data;
+      } else if (printResult) {
+        newText = String(printResult);
+      }
+
+      // Update the textarea to reflect the new internal state
+      if (newText.trim() !== "") {
+        journalText.value = newText;
+      }
+
+      // Force into journal mode to prevent accidental CSV edits reverting the state
+      state.mode = "journal";
+      syncUIState();
+      
+      // Reparse guarantees everything across WASM and JS runs in lock-step
+      await reparse();
     }
 
     // --- GUI Renderer ----------------------------------------------------
@@ -1008,11 +1048,57 @@ if TRANSFER TO SAVINGS
       rowContainer.appendChild(actions);
 
       actions.querySelector(".edit-btn").addEventListener("click", () => {
-        console.log(`Edit transaction ID: ${txn.id}`);
+        editingTxnId = txn.id;
+        modalTitle.textContent = "Edit Transaction";
+        submitTxnBtn.textContent = "Save Changes";
+
+        // Pre-fill Visual mode inputs
+        txnDate.value = txn.date;
+        txnDesc.value = txn.description;
+
+        // Rebuild postings list
+        postingsContainer.innerHTML = "";
+        txn.postings.forEach(p => {
+          const row = document.createElement("div");
+          row.className = "posting-row";
+          row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
+          row.innerHTML = `
+            <input type="text" class="post-acct" placeholder="Account" value="${escapeHtml(p.account)}" required />
+            <input type="text" class="post-amt" placeholder="Amount" value="${escapeHtml(p.amount || '')}" />
+            <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
+          `;
+          attachRemoveRowListener(row.querySelector(".remove-post-btn"));
+          postingsContainer.appendChild(row);
+        });
+
+        // Pre-fill Raw mode input
+        rawTxnInput.value = txn.rawText;
+        
+        rawToggle.checked = false; 
+        visualTxnUi.style.display = "block";
+        rawTxnContainer.style.display = "none";
+
+        setStatus("Edit transaction details", "info", modalStatusBanner);
+        txnModal.showModal();
       });
 
-      actions.querySelector(".delete-btn").addEventListener("click", () => {
-        console.log(`Delete transaction ID: ${txn.id}`);
+      actions.querySelector(".delete-btn").addEventListener("click", async () => {
+        const confirmed = confirm("Are you sure you want to delete this transaction?");
+        if (!confirmed) return;
+        
+        setStatus("Deleting transaction...", "loading");
+        
+        try {
+          const result = await session.deleteTransaction(txn.id);
+          if (result && result.error) {
+            setStatus(`Error: ${result.error}`, "error");
+            return;
+          }
+          await syncJournalTextToState();
+          setStatus("Transaction deleted successfully.", "ok");
+        } catch (error) {
+          setStatus("Failed to delete transaction.", "error");
+        }
       });
 
       return rowContainer;
@@ -1117,11 +1203,30 @@ if TRANSFER TO SAVINGS
     });
 
     document.getElementById("addtxnbtn").addEventListener("click", () => {
+      editingTxnId = null;
+      modalTitle.textContent = "Add New Transaction";
+      submitTxnBtn.textContent = "Add Transaction";
+
       txnDate.value = new Date().toISOString().split("T")[0];
       txnDesc.value = "";
-      postingsContainer.querySelectorAll(".posting-row").forEach(row => {
-        row.querySelector(".post-acct").value = "";
-        row.querySelector(".post-amt").value = "";
+      postingsContainer.innerHTML = ""; // Clear entirely and reset defaults
+      
+      const defaultRows = [
+        { acct: "", placeholder: "Account (e.g. expenses:food)" },
+        { acct: "", placeholder: "Account (e.g. assets:bank)" }
+      ];
+
+      defaultRows.forEach(def => {
+        const row = document.createElement("div");
+        row.className = "posting-row";
+        row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
+        row.innerHTML = `
+          <input type="text" class="post-acct" placeholder="${def.placeholder}" required />
+          <input type="text" class="post-amt" placeholder="Amount (optional)" />
+          <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
+        `;
+        attachRemoveRowListener(row.querySelector(".remove-post-btn"));
+        postingsContainer.appendChild(row);
       });
 
       rawToggle.checked = false;
@@ -1143,8 +1248,6 @@ if TRANSFER TO SAVINGS
         }
       });
     }
-
-    document.querySelectorAll(".posting-row .remove-post-btn").forEach(attachRemoveRowListener);
 
     addPostingBtn.addEventListener("click", () => {
       const row = document.createElement("div");
@@ -1195,32 +1298,31 @@ if TRANSFER TO SAVINGS
         rawTxnText = buildTransactionText();
       }
 
-      setStatus("Adding transaction...", "loading", modalStatusBanner);
+      setStatus(editingTxnId !== null ? "Saving changes..." : "Adding transaction...", "loading", modalStatusBanner);
       setReportButtonsEnabled(false);
 
       try {
-        const result = await session.balanceTransaction(rawTxnText);
+        let result;
+        if (editingTxnId !== null) {
+          result = await session.updateTransaction(editingTxnId, rawTxnText);
+        } else {
+          result = await session.balanceTransaction(rawTxnText);
+        }
 
         if (result && result.error) {
-          setStatus(`Error adding transaction: ${result.error}`, "error", modalStatusBanner);
+          setStatus(`Error: ${result.error}`, "error", modalStatusBanner);
           setReportButtonsEnabled(true);
           return;
         }
 
-        const printResult = await session.printText("");
-        journalText.value = (printResult && typeof printResult.data === 'string')
-          ? printResult.data
-          : String(printResult);
+        // Apply state updates to the source textareas
+        await syncJournalTextToState();
 
-        state.mode = "journal";
-        syncUIState();
-        await reparse();
-
-        setStatus("Transaction added successfully.", "ok");
+        setStatus(editingTxnId !== null ? "Transaction updated successfully." : "Transaction added successfully.", "ok");
         txnModal.close();
       } catch (error) {
         console.error(error);
-        setStatus("Failed to add transaction.", "error", modalStatusBanner);
+        setStatus("Failed to process transaction.", "error", modalStatusBanner);
         setReportButtonsEnabled(true);
       }
     });
