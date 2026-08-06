@@ -23,9 +23,10 @@ import Hledger.Read.RulesReader (readRules, readJournalFromCsv)
 import Hledger.Data.Types 
   ( Journal, jpricedirectives, AccountType(..)
   , MixedAmount, DateSpan(..), EFDay(..), Interval(..)
-  , jperiodictxns, ptinterval
-  , jtxns
+  , jperiodictxns, ptinterval, jtxns
+  , Transaction(..), Posting(..)
   )
+import Hledger.Data.Amount (showMixedAmount)
 import Hledger.Data.Journal
   ( journalAccountNames
   , journalPayeesDeclaredOrUsed
@@ -98,6 +99,8 @@ foreign export javascript "parseCsv" hs_parseCsv :: JSString -> JSString -> IO J
 foreign export javascript "runReport" hs_runReport :: Int -> JSString -> JSString -> IO JSString
 foreign export javascript "balanceTransaction" hs_balanceTransaction :: Int -> JSString -> IO JSString
 foreign export javascript "freeJournal" hs_freeJournal :: Int -> IO ()
+
+foreign export javascript "getJournalJSON" hs_getJournalJSON :: Int -> IO JSString
 
 
 mkSubreport :: T.Text -> [AccountType] -> Bool -> CBCSubreportSpec DisplayName
@@ -274,6 +277,30 @@ hs_balanceTransaction handle jsTxnText = do
 hs_freeJournal :: Int -> IO ()
 hs_freeJournal handle =
   atomicModifyIORef' journalTable $ \(tbl, nextId) -> ((Map.delete handle tbl, nextId), ())
+
+
+hs_getJournalJSON :: Int -> IO JSString
+hs_getJournalJSON handle = do
+  (tbl, _) <- readIORef journalTable
+  case Map.lookup handle tbl of
+    Nothing -> jsonResponse ["ok" .= False, "error" .= ("invalid handle" :: String)]
+    Just journal -> do
+      -- Zip the transactions with an index to give the UI a stable ID
+      let uiTxns = zipWith formatTxn [0..] (jtxns journal)
+      jsonResponse ["ok" .= True, "data" .= uiTxns]
+  where
+    formatTxn idx t = object
+      [ "id" .= (idx :: Int)
+      , "date" .= tdate t
+      , "description" .= tdescription t
+      , "postings" .= map formatPosting (tpostings t)
+      , "rawText" .= showTransaction t
+      ]
+    formatPosting p = object
+      [ "account" .= paccount p
+      , "amount" .= showMixedAmount (pamount p)
+      ]
+
 
 main :: IO ()
 main = pure ()

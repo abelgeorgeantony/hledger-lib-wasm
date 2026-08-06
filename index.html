@@ -12,7 +12,7 @@
       --ink-soft: #4b5a54;
       --paper: #f6f5f0;
       --panel: #ffffff;
-      --rule: #d8d3c4;
+      --rule: #d2cbb8;
       --accent: #2f6b4f;
       --accent-ink: #16332a;
       --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
@@ -106,6 +106,13 @@
       border-radius: 4px;
       background: var(--paper);
       color: inherit;
+      transition: border-color 0.15s ease;
+    }
+
+    input[type="text"]:hover,
+    input[type="date"]:hover,
+    textarea:hover {
+      border-color: var(--accent);
     }
 
     input[type="text"],
@@ -249,7 +256,8 @@
     }
 
     #journal-panel,
-    #csv-panel {
+    #csv-panel,
+    #gui-panel {
       flex: 1;
       min-height: 0;
       display: flex;
@@ -264,13 +272,16 @@
       flex-direction: row;
     }
 
+    #gui-panel {
+      flex-direction: column;
+      overflow-y: auto;
+      gap: 10px;
+      padding-right: 4px;
+    }
+
     #journal-panel textarea {
       flex: 1;
       min-height: 0;
-    }
-
-    #csv-panel {
-      display: none;
     }
 
     .csv-field {
@@ -289,9 +300,10 @@
     #output {
       flex: 1;
       min-height: 0;
-      background: var(--ink);
-      color: #eef3f0;
-      border-color: var(--accent-ink);
+      background: var(--paper);
+      color: var(--ink);
+      border: 1px solid var(--accent);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
     }
 
     .toggle-row {
@@ -358,20 +370,21 @@
     input:focus-visible,
     textarea:focus-visible,
     .mode-option:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
     }
 
     .divider {
       border: none;
-      border-top: 1px dashed var(--rule);
+      border-top: 1px solid var(--rule);
       margin: 20px 0;
     }
 
     footer {
       margin-top: auto;
       padding-top: 16px;
-      border-top: 1px dashed var(--rule);
+      border-top: 1px solid var(--rule);
     }
 
     .tagline {
@@ -405,39 +418,47 @@
       color: var(--ink);
     }
 
-    /* Toggle Switch Styles */
+    /* --- Toggle Switch --- */
     .switch-container {
       display: flex;
       align-items: center;
       gap: 8px;
     }
+
     .switch-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-secondary, #555);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-soft);
     }
+
     .switch {
       position: relative;
       display: inline-block;
       width: 36px;
       height: 20px;
     }
+
     .switch input {
       opacity: 0;
       width: 0;
       height: 0;
     }
+
     .slider {
       position: absolute;
       cursor: pointer;
-      top: 0; 
-      left: 0; 
-      right: 0; 
+      top: 0;
+      left: 0;
+      right: 0;
       bottom: 0;
       background-color: #ccc;
       transition: background-color 0.2s ease;
       border-radius: 20px;
     }
+
     .slider:before {
       position: absolute;
       content: "";
@@ -449,10 +470,12 @@
       transition: transform 0.2s ease;
       border-radius: 50%;
     }
-    .switch input:checked + .slider {
-      background-color: var(--primary, #2563eb);
+
+    .switch input:checked+.slider {
+      background-color: var(--accent);
     }
-    .switch input:checked + .slider:before {
+
+    .switch input:checked+.slider:before {
       transform: translateX(16px);
     }
 
@@ -461,6 +484,177 @@
       justify-content: flex-end;
       gap: 8px;
       margin-top: 24px;
+    }
+
+    /* --- Enhanced GUI Transaction Cards --- */
+    .txn-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .txn-card {
+      flex: 1;
+      background: var(--panel, #ffffff);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    .txn-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transform: translateY(-1px);
+    }
+
+    .txn-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+      align-items: stretch;
+    }
+
+    .txn-actions button {
+      padding: 4px 10px;
+      min-height: 28px;
+      font-size: 11px;
+      width: 100%;
+    }
+
+    .txn-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .txn-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--accent-ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+      border: 1px solid var(--rule);
+    }
+
+    .txn-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .txn-title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .txn-desc {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+    }
+
+    .txn-date {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-soft);
+      flex-shrink: 0;
+    }
+
+    .txn-subtext {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .txn-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--paper);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border: 1px solid var(--rule);
+    }
+
+    /* Postings Breakdown */
+    .posting-list {
+      border-top: 1px solid var(--rule);
+      padding-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .posting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--paper);
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--rule);
+      transition: border-color 0.1s ease;
+      gap: 8px;
+    }
+
+    .posting-item:hover {
+      border-color: var(--accent);
+    }
+
+    .posting-account {
+      color: var(--ink);
+      font-weight: 500;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .posting-account::before {
+      content: "•";
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .posting-amount {
+      font-weight: 600;
+      color: var(--ink);
+      flex-shrink: 0;
+    }
+
+    .posting-amount.credit {
+      color: #059669;
     }
 
     @media (max-width: 780px) {
@@ -496,6 +690,15 @@
         <span id="status-text">Loading WASM module...</span>
       </div>
 
+      <div class="switch-container" style="margin-bottom: 16px;">
+        <span class="switch-label">Raw</span>
+        <label class="switch">
+          <input type="checkbox" id="gui-toggle" />
+          <span class="slider"></span>
+        </label>
+        <span class="switch-label">GUI</span>
+      </div>
+
       <div class="view-bar">
         <div class="mode-toggle" role="radiogroup" aria-label="Input format">
           <button type="button" class="mode-option is-active" data-mode="journal">Journal</button>
@@ -505,6 +708,7 @@
       </div>
 
       <div id="input-view">
+        <!-- Raw Journal Panel -->
         <div id="journal-panel">
           <label class="field-label" for="journal-text">Journal text</label>
           <textarea id="journal-text" spellcheck="false">2026-01-01 opening
@@ -516,7 +720,8 @@
     assets:bank</textarea>
         </div>
 
-        <div id="csv-panel">
+        <!-- Raw CSV Panel -->
+        <div id="csv-panel" style="display: none;">
           <div class="csv-field">
             <label class="field-label" for="csv-text">CSV data</label>
             <textarea id="csv-text" spellcheck="false">"Date","Notes","Amount"
@@ -545,6 +750,11 @@ if TRANSFER TO SAVINGS
 </textarea>
           </div>
         </div>
+
+        <!-- Unified GUI Panel for both Journal and CSV -->
+        <div id="gui-panel" style="display: none;">
+          <!-- Populated by JS -->
+        </div>
       </div>
 
       <div id="output-view" style="display: none;">
@@ -571,7 +781,7 @@ if TRANSFER TO SAVINGS
       <button id="clear" class="secondary" style="margin-top: 4px;">Clear output</button>
     </section>
 
-    <!-- Modal Form for Adding Transaction with Raw Text Toggle -->
+    <!-- Modal Form for Adding Transaction -->
     <dialog id="txn-modal" class="modal">
       <form method="dialog" id="txn-form">
         <div id="modal-status" class="status-banner" data-state="info" style="margin-bottom: 16px;">
@@ -590,7 +800,6 @@ if TRANSFER TO SAVINGS
           </div>
         </div>
 
-        <!-- Visual Input UI Container -->
         <div id="visual-txn-ui">
           <div class="field-row" style="grid-template-columns: 1fr 2fr;">
             <div class="field" style="margin-bottom: 0;">
@@ -606,27 +815,33 @@ if TRANSFER TO SAVINGS
           <div class="field" style="margin-bottom: 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <label class="field-label" style="margin: 0;">Postings</label>
-              <button type="button" class="secondary" id="add-posting-btn" style="padding: 2px 8px; min-height: 24px; font-size: 11px;">+ Add Posting</button>
+              <button type="button" class="secondary" id="add-posting-btn"
+                style="padding: 2px 8px; min-height: 24px; font-size: 11px;">+ Add Posting</button>
             </div>
-            <div id="postings-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
-              <div class="posting-row" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;">
+            <div id="postings-container"
+              style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+              <div class="posting-row"
+                style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;">
                 <input type="text" class="post-acct" placeholder="Account (e.g. expenses:food)" required />
                 <input type="text" class="post-amt" placeholder="Amount (optional)" />
-                <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
+                <button type="button" class="secondary remove-post-btn"
+                  style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
               </div>
-              <div class="posting-row" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;">
+              <div class="posting-row"
+                style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;">
                 <input type="text" class="post-acct" placeholder="Account (e.g. assets:bank)" required />
                 <input type="text" class="post-amt" placeholder="Amount (optional)" />
-                <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
+                <button type="button" class="secondary remove-post-btn"
+                  style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Raw Text Area Container -->
         <div id="raw-txn-container" class="field" style="display: none; margin-bottom: 0;">
           <label class="field-label" for="raw-txn-input">Raw Transaction Text</label>
-          <textarea id="raw-txn-input" readonly rows="8" spellcheck="false" style="font-family: var(--mono); width: 100%;"></textarea>
+          <textarea id="raw-txn-input" readonly rows="8" spellcheck="false"
+            style="font-family: var(--mono); width: 100%;"></textarea>
         </div>
 
         <div class="modal-actions">
@@ -640,22 +855,31 @@ if TRANSFER TO SAVINGS
   <script type="module">
     import { HledgerSession } from "./js/hledger.js";
 
+    // --- State Manager --------------------------------------------------
+    const state = {
+      mode: "journal", // "journal" | "csv"
+      view: "input",   // "input" | "output"
+      isGui: false
+    };
+
+    // --- Element Selectors ----------------------------------------------
     const journalText = document.querySelector("#journal-text");
     const csvText = document.querySelector("#csv-text");
     const csvRulesText = document.querySelector("#csv-rules-text");
     const journalPanel = document.querySelector("#journal-panel");
     const csvPanel = document.querySelector("#csv-panel");
+    const guiPanel = document.querySelector("#gui-panel");
     const queryInput = document.querySelector("#query-input");
     const forecastToggle = document.querySelector("#forecast-toggle");
     const checkStrictToggle = document.querySelector("#check-strict-toggle");
     const output = document.querySelector("#output");
     const statusBanner = document.querySelector("#status");
-    const statusText = document.querySelector("#status-text");
     const reportGroupsContainer = document.querySelector("#report-groups");
     const clearButton = document.querySelector("#clear");
     const viewToggleButton = document.querySelector("#view-toggle");
     const inputView = document.querySelector("#input-view");
     const outputView = document.querySelector("#output-view");
+    const guiToggle = document.getElementById("gui-toggle");
 
     // Modal Elements
     const txnModal = document.getElementById("txn-modal");
@@ -671,15 +895,199 @@ if TRANSFER TO SAVINGS
     const cancelTxnBtn = document.getElementById("cancel-txn-btn");
     const submitTxnBtn = document.getElementById("submit-txn-btn");
 
-    let mode = "journal"; // "journal" | "csv"
-    let view = "input";   // "input" | "output"
-
-    function setStatus(text, state = "info", banner = statusBanner) {
+    function setStatus(text, stateType = "info", banner = statusBanner) {
       const textEl = banner.querySelector("span:last-child");
       if (textEl) textEl.textContent = text;
-      banner.dataset.state = state;
+      banner.dataset.state = stateType;
     }
 
+    function escapeHtml(str) {
+      return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Centralized UI Synchronization
+    function syncUIState() {
+      // 1. Toggle Input vs Output View
+      inputView.style.display = state.view === "input" ? "flex" : "none";
+      outputView.style.display = state.view === "output" ? "flex" : "none";
+      viewToggleButton.textContent = state.view === "input" ? "View output" : "View input";
+
+      // 2. Sync Mode Toggle Buttons
+      document.querySelectorAll(".mode-option").forEach(btn => {
+        btn.classList.toggle("is-active", btn.dataset.mode === state.mode);
+      });
+
+      // 3. Sync GUI vs Raw View Panels
+      guiToggle.checked = state.isGui;
+      if (state.isGui) {
+        journalPanel.style.display = "none";
+        csvPanel.style.display = "none";
+        guiPanel.style.display = "flex";
+      } else {
+        guiPanel.style.display = "none";
+        journalPanel.style.display = state.mode === "journal" ? "flex" : "none";
+        csvPanel.style.display = state.mode === "csv" ? "flex" : "none";
+      }
+    }
+
+    // --- GUI Renderer ----------------------------------------------------
+    async function renderGuiJournal() {
+      if (!session.isLoaded) return;
+      guiPanel.innerHTML = '<div class="status-banner" data-state="loading"><span class="status-dot"></span><span>Loading GUI view...</span></div>';
+
+      try {
+        const result = await session.getJournalJSON();
+
+        if (!result.ok) {
+          guiPanel.innerHTML = `<div class="status-banner" data-state="error"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
+          return;
+        }
+
+        if (!result.data || result.data.length === 0) {
+          guiPanel.innerHTML = '<div class="status-banner" data-state="info"><span class="status-dot"></span><span>No transactions found.</span></div>';
+          return;
+        }
+
+        guiPanel.innerHTML = "";
+
+        result.data.forEach(txn => {
+          guiPanel.appendChild(renderTransactionCard(txn));
+        });
+      } catch (error) {
+        guiPanel.innerHTML = `<div class="status-banner" data-state="error"><span class="status-dot"></span><span>Failed to load GUI view</span></div>`;
+      }
+    }
+
+    // --- Updated JavaScript Card Renderer ---
+    function renderTransactionCard(txn) {
+      const rowContainer = document.createElement("div");
+      rowContainer.className = "txn-row";
+
+      const card = document.createElement("div");
+      card.className = "txn-card";
+
+      // Generate monogram initial for avatar
+      const initial = (txn.description || "T").trim().charAt(0).toUpperCase();
+
+      const postingsHtml = txn.postings.map(p => {
+        const isCredit = p.amount && !p.amount.trim().startsWith('-');
+        return `
+          <div class="posting-item">
+            <span class="posting-account">${escapeHtml(p.account)}</span>
+            <span class="posting-amount ${isCredit ? 'credit' : ''}">${escapeHtml(p.amount)}</span>
+          </div>
+        `;
+      }).join("");
+
+      card.innerHTML = `
+        <div class="txn-main">
+          <div class="txn-avatar">${initial}</div>
+          <div class="txn-info">
+            <div class="txn-title-row">
+              <span class="txn-desc">${escapeHtml(txn.description)}</span>
+              <span class="txn-date">${escapeHtml(txn.date)}</span>
+            </div>
+            <div class="txn-subtext">
+              <span class="txn-badge">${txn.postings.length} postings</span>
+            </div>
+          </div>
+        </div>
+        <div class="posting-list">
+          ${postingsHtml}
+        </div>
+      `;
+
+      const actions = document.createElement("div");
+      actions.className = "txn-actions";
+      actions.innerHTML = `
+        <button class="secondary edit-btn" data-id="${txn.id}">Edit</button>
+        <button class="secondary delete-btn" data-id="${txn.id}" style="color: #900c0c; border-color: #f5c2c2; background: #fdf2f2;">Delete</button>
+      `;
+
+      rowContainer.appendChild(card);
+      rowContainer.appendChild(actions);
+
+      actions.querySelector(".edit-btn").addEventListener("click", () => {
+        console.log(`Edit transaction ID: ${txn.id}`);
+      });
+
+      actions.querySelector(".delete-btn").addEventListener("click", () => {
+        console.log(`Delete transaction ID: ${txn.id}`);
+      });
+
+      return rowContainer;
+    }
+
+    // --- Reparse Engine -------------------------------------------------
+    let debounceTimer = null;
+
+    function scheduleReparse() {
+      setStatus("Waiting for typing...", "loading");
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(reparse, 300);
+    }
+
+    async function reparse() {
+      setReportButtonsEnabled(false);
+      setStatus(`Parsing ${state.mode.toUpperCase()} input...`, "loading");
+      const forecast = forecastToggle.checked;
+
+      const result = state.mode === "csv"
+        ? await session.parseCsv(csvText.value, csvRulesText.value, forecast)
+        : await session.loadJournal(journalText.value, forecast);
+
+      if (result.ok) {
+        setStatus(`${state.mode.toUpperCase()} parsed successfully.`, "ok");
+        if (state.isGui) {
+          await renderGuiJournal();
+        }
+      } else {
+        setStatus(`${state.mode.toUpperCase()} error: ${result.error}`, "error");
+        if (state.isGui) {
+          guiPanel.innerHTML = `<div class="status-banner" data-state="error"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
+        }
+      }
+
+      setReportButtonsEnabled(session.isLoaded);
+    }
+
+    // --- Event Handlers -------------------------------------------------
+    guiToggle.addEventListener("change", async () => {
+      state.isGui = guiToggle.checked;
+      syncUIState();
+      if (state.isGui) {
+        await renderGuiJournal();
+      }
+    });
+
+    viewToggleButton.addEventListener("click", () => {
+      state.view = state.view === "input" ? "output" : "input";
+      syncUIState();
+    });
+
+    document.querySelectorAll(".mode-option").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (state.mode === btn.dataset.mode) return;
+        state.mode = btn.dataset.mode;
+        state.view = "input";
+        syncUIState();
+        reparse();
+      });
+    });
+
+    journalText.addEventListener("input", scheduleReparse);
+    csvText.addEventListener("input", scheduleReparse);
+    csvRulesText.addEventListener("input", scheduleReparse);
+    forecastToggle.addEventListener("change", reparse);
+
+    clearButton.addEventListener("click", () => {
+      output.value = "";
+      setStatus("Output cleared.", "info");
+      state.view = "output";
+      syncUIState();
+    });
+
+    // --- Transaction Modal Handler --------------------------------------
     function buildTransactionText() {
       const dateVal = txnDate.value;
       const descVal = txnDesc.value.trim();
@@ -691,25 +1099,12 @@ if TRANSFER TO SAVINGS
         const amt = row.querySelector(".post-amt").value.trim();
         if (acct) {
           rawTxnText += `\n    ${acct}`;
-          if (amt) {
-            rawTxnText += `    ${amt}`;
-          }
+          if (amt) rawTxnText += `    ${amt}`;
         }
       }
       return rawTxnText;
     }
 
-    // --- View toggle ----------------------------------------------------
-    function setView(next) {
-      view = next;
-      inputView.style.display = view === "input" ? "flex" : "none";
-      outputView.style.display = view === "output" ? "flex" : "none";
-      viewToggleButton.textContent = view === "input" ? "View output" : "View input";
-    }
-
-    viewToggleButton.addEventListener("click", () => setView(view === "input" ? "output" : "input"));
-
-    // --- Raw toggle ----------------------------------------------------
     rawToggle.addEventListener("change", () => {
       if (rawToggle.checked) {
         rawTxnInput.value = buildTransactionText();
@@ -721,12 +1116,9 @@ if TRANSFER TO SAVINGS
       }
     });
 
-    // --- Modal Logic ----------------------------------------------------
     document.getElementById("addtxnbtn").addEventListener("click", () => {
-      // Clear fields and set date to today when opening
-      txnDate.value = new Date().toLocaleDateString("en-CA");
+      txnDate.value = new Date().toISOString().split("T")[0];
       txnDesc.value = "";
-      // Reset values of the existing posting inputs
       postingsContainer.querySelectorAll(".posting-row").forEach(row => {
         row.querySelector(".post-acct").value = "";
         row.querySelector(".post-amt").value = "";
@@ -741,8 +1133,7 @@ if TRANSFER TO SAVINGS
       txnModal.showModal();
     });
 
-    // Attach remove listeners to the initial hardcoded rows
-    document.querySelectorAll(".posting-row .remove-post-btn").forEach(btn => {
+    function attachRemoveRowListener(btn) {
       btn.addEventListener("click", (e) => {
         const row = e.target.closest(".posting-row");
         if (postingsContainer.children.length > 2) {
@@ -751,35 +1142,24 @@ if TRANSFER TO SAVINGS
           setStatus("A transaction must have at least 2 postings.", "error", modalStatusBanner);
         }
       });
-    });
+    }
 
-    function createPostingRow(account = "", amount = "") {
+    document.querySelectorAll(".posting-row .remove-post-btn").forEach(attachRemoveRowListener);
+
+    addPostingBtn.addEventListener("click", () => {
       const row = document.createElement("div");
       row.className = "posting-row";
       row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
       row.innerHTML = `
-        <input type="text" class="post-acct" placeholder="Account (e.g. expenses:food)" value="${account}" required />
-        <input type="text" class="post-amt" placeholder="Amount (optional)" value="${amount}" />
+        <input type="text" class="post-acct" placeholder="Account (e.g. expenses:food)" required />
+        <input type="text" class="post-amt" placeholder="Amount (optional)" />
         <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
       `;
-
-      row.querySelector(".remove-post-btn").addEventListener("click", () => {
-        if (postingsContainer.children.length > 2) {
-          row.remove();
-        } else {
-          setStatus("A transaction must have at least 2 postings.", "error", modalStatusBanner);
-        }
-      });
-
-      return row;
-    }
-    addPostingBtn.addEventListener("click", () => {
-      postingsContainer.appendChild(createPostingRow());
+      attachRemoveRowListener(row.querySelector(".remove-post-btn"));
+      postingsContainer.appendChild(row);
     });
 
-    cancelTxnBtn.addEventListener("click", () => {
-      txnModal.close();
-    });
+    cancelTxnBtn.addEventListener("click", () => txnModal.close());
 
     submitTxnBtn.addEventListener("click", async () => {
       let rawTxnText = "";
@@ -806,8 +1186,7 @@ if TRANSFER TO SAVINGS
         }
 
         for (const row of postingRows) {
-          const acct = row.querySelector(".post-acct").value.trim();
-          if (!acct) {
+          if (!row.querySelector(".post-acct").value.trim()) {
             setStatus("All posting rows must have an account specified.", "error", modalStatusBanner);
             return;
           }
@@ -820,31 +1199,21 @@ if TRANSFER TO SAVINGS
       setReportButtonsEnabled(false);
 
       try {
-        // Send request to haskell
         const result = await session.balanceTransaction(rawTxnText);
 
-        // Handle potential errors depending on how the wrapper handles them
         if (result && result.error) {
           setStatus(`Error adding transaction: ${result.error}`, "error", modalStatusBanner);
           setReportButtonsEnabled(true);
           return;
         }
 
-        // Run a separate session.printText() to fetch the full canonical journal format
         const printResult = await session.printText("");
-
-        // Extract the canonical string representation
-        const newJournalText = (printResult && typeof printResult.data === 'string')
+        journalText.value = (printResult && typeof printResult.data === 'string')
           ? printResult.data
           : String(printResult);
 
-        // Replace the entire content of the journal to avoid mismatches
-        journalText.value = newJournalText;
-
-        // Make sure the journal mode is active so the user can see the update
-        setMode("journal");
-
-        // Force a reparse to sync everything cleanly
+        state.mode = "journal";
+        syncUIState();
         await reparse();
 
         setStatus("Transaction added successfully.", "ok");
@@ -856,15 +1225,12 @@ if TRANSFER TO SAVINGS
       }
     });
 
-    // --- Report button definitions -------------------------------------
+    // --- Report Buttons Definition --------------------------------------
     const reportGroups = [
       {
         label: "Validate",
         items: [
-          {
-            id: "check", label: "Check",
-            run: (q) => checkStrictToggle.checked ? session.checkStrict(q) : session.check(q),
-          },
+          { id: "check", label: "Check", run: (q) => checkStrictToggle.checked ? session.checkStrict(q) : session.check(q) },
         ],
       },
       {
@@ -937,77 +1303,16 @@ if TRANSFER TO SAVINGS
       for (const btn of reportButtons) btn.disabled = !enabled;
     }
 
-    // --- Session lifecycle ----------------------------------------------
-    setStatus("Initializing WASM module...", "loading");
-    const session = await HledgerSession.create();
-
-    let debounceTimer = null;
-
-    function scheduleReparse() {
-      setStatus("Waiting for typing...", "loading");
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(reparse, 300);
-    }
-
-    async function reparse() {
-      setReportButtonsEnabled(false);
-      setStatus(`Parsing ${mode.toUpperCase()} input...`, "loading");
-      const forecast = forecastToggle.checked;
-
-      const result = mode === "csv"
-        ? await session.parseCsv(csvText.value, csvRulesText.value, forecast)
-        : await session.loadJournal(journalText.value, forecast);
-
-      if (result.ok) {
-        setStatus(`${mode.toUpperCase()} parsed successfully.`, "ok");
-      } else {
-        setStatus(`${mode.toUpperCase()} error: ${result.error}`, "error");
-      }
-
-      setReportButtonsEnabled(session.isLoaded);
-    }
-
-    function setMode(next) {
-      if (mode === next) return;
-      mode = next;
-      journalPanel.style.display = mode === "journal" ? "flex" : "none";
-      csvPanel.style.display = mode === "csv" ? "flex" : "none";
-      for (const btn of document.querySelectorAll(".mode-option")) {
-        btn.classList.toggle("is-active", btn.dataset.mode === mode);
-      }
-      reparse();
-    }
-
-    for (const btn of document.querySelectorAll(".mode-option")) {
-      btn.addEventListener("click", () => {
-        setMode(btn.dataset.mode);
-        setView("input");
-      });
-    }
-
-    journalText.addEventListener("input", scheduleReparse);
-    csvText.addEventListener("input", scheduleReparse);
-    csvRulesText.addEventListener("input", scheduleReparse);
-    forecastToggle.addEventListener("change", reparse);
-
-    clearButton.addEventListener("click", () => {
-      output.value = "";
-      setStatus("Output cleared.", "info");
-      setView("output");
-    });
-
     async function runReport(label, action) {
-      setView("output");
+      state.view = "output";
+      syncUIState();
       setReportButtonsEnabled(false);
       setStatus(`Running ${label}...`, "loading");
       try {
         const result = await action();
-        // Check if the result has a 'data' string, otherwise fallback to JSON
-        if (result && typeof result.data === 'string') {
-          output.value = result.data;
-        } else {
-          output.value = JSON.stringify(result, null, 2);
-        }
+        output.value = (result && typeof result.data === 'string')
+          ? result.data
+          : JSON.stringify(result, null, 2);
         setStatus(`${label} report finished.`, "ok");
       } catch (error) {
         output.value = error.stack || String(error);
@@ -1017,6 +1322,10 @@ if TRANSFER TO SAVINGS
       }
     }
 
+    // --- Init -----------------------------------------------------------
+    setStatus("Initializing WASM module...", "loading");
+    const session = await HledgerSession.create();
+    syncUIState();
     await reparse();
   </script>
 </body>

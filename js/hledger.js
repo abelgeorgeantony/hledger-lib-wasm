@@ -142,4 +142,17 @@ export class HledgerSession {
     );
     return result;
   }
+
+
+
+  async getJournalJSON() {
+    if (!this.isLoaded) return { ok: false, error: "no journal loaded" };
+    
+    // Call the newly exported WASM function using the encapsulated handle
+    const result = JSON.parse(
+      await this.#instance.exports.getJournalJSON(this.#handle)
+    );
+    
+    return result;
+  }
 }

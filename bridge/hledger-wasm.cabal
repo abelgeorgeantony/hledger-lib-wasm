@@ -19,4 +19,4 @@ executable hledger-wasm
   ghc-options:
     -no-hs-main
     -optl-mexec-model=reactor
-    -optl-Wl,--export=parseJournal,--export=freeJournal,--export=runReport,,--export=parseCsv,--export=balanceTransaction
+    -optl-Wl,--export=parseJournal,--export=freeJournal,--export=runReport,,--export=parseCsv,--export=balanceTransaction,--export=getJournalJSON
