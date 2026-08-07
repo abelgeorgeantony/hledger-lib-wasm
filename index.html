@@ -244,7 +244,8 @@
       flex-direction: column;
     }
 
-    #gui-panel, #gui-output-panel {
+    #gui-panel,
+    #gui-output-panel {
       flex-direction: column;
       overflow-y: auto;
       scrollbar-width: thin;
@@ -253,24 +254,29 @@
       padding-top: 2px;
     }
 
-    #gui-panel:hover, #gui-output-panel:hover {
+    #gui-panel:hover,
+    #gui-output-panel:hover {
       scrollbar-color: color-mix(in srgb, var(--rule) 70%, transparent) transparent;
     }
 
-    #gui-panel::-webkit-scrollbar, #gui-output-panel::-webkit-scrollbar {
+    #gui-panel::-webkit-scrollbar,
+    #gui-output-panel::-webkit-scrollbar {
       width: 8px;
     }
 
-    #gui-panel::-webkit-scrollbar-track, #gui-output-panel::-webkit-scrollbar-track {
+    #gui-panel::-webkit-scrollbar-track,
+    #gui-output-panel::-webkit-scrollbar-track {
       background: transparent;
     }
 
-    #gui-panel::-webkit-scrollbar-thumb, #gui-output-panel::-webkit-scrollbar-thumb {
+    #gui-panel::-webkit-scrollbar-thumb,
+    #gui-output-panel::-webkit-scrollbar-thumb {
       background: transparent;
       border-radius: 999px;
     }
 
-    #gui-panel:hover::-webkit-scrollbar-thumb, #gui-output-panel:hover::-webkit-scrollbar-thumb {
+    #gui-panel:hover::-webkit-scrollbar-thumb,
+    #gui-output-panel:hover::-webkit-scrollbar-thumb {
       background: var(--rule);
     }
 
@@ -582,9 +588,17 @@
       gap: 8px;
     }
 
-    .posting-item.credit { color: #059669; }
-    .posting-item.debit { color: #dc2626; }
-    .posting-item.neutral { color: var(--ink); }
+    .posting-item.credit {
+      color: #059669;
+    }
+
+    .posting-item.debit {
+      color: #dc2626;
+    }
+
+    .posting-item.neutral {
+      color: var(--ink);
+    }
 
     .posting-account {
       color: inherit;
@@ -620,6 +634,7 @@
       border-radius: 6px;
       margin-bottom: 10px;
     }
+
     .table-ui {
       width: 100%;
       border-collapse: collapse;
@@ -627,6 +642,7 @@
       font-size: 12px;
       text-align: left;
     }
+
     .table-ui th {
       padding: 8px 12px;
       font-weight: 600;
@@ -634,10 +650,12 @@
       background: var(--paper);
       border-bottom: 2px solid var(--rule);
     }
+
     .table-ui td {
       padding: 8px 12px;
       border-bottom: 1px solid var(--rule);
     }
+
     .table-ui tr:last-child td {
       border-bottom: none;
     }
@@ -654,6 +672,7 @@
       border: 1px solid var(--rule);
       border-radius: 6px;
     }
+
     .tree-row {
       display: flex;
       justify-content: space-between;
@@ -662,21 +681,26 @@
       border-radius: 4px;
       cursor: pointer;
     }
+
     .tree-row:hover {
       background: var(--paper);
     }
+
     .tree-leaf {
-      padding-left: 20px; 
+      padding-left: 20px;
       cursor: default;
     }
+
     .tree-name {
       font-weight: 500;
       color: var(--ink);
     }
+
     .tree-amount {
       font-weight: 600;
       color: var(--accent);
     }
+
     .tree-children {
       margin-left: 12px;
       padding-left: 8px;
@@ -685,10 +709,12 @@
       flex-direction: column;
       gap: 2px;
     }
+
     summary.tree-row {
       list-style-type: '▶ ';
     }
-    details[open] > summary.tree-row {
+
+    details[open]>summary.tree-row {
       list-style-type: '▼ ';
     }
 
@@ -699,12 +725,20 @@
         height: auto;
         min-height: 100vh;
       }
-      .pane-left { height: 70vh; }
-      .split-pane { flex-direction: column; }
+
+      .pane-left {
+        height: 70vh;
+      }
+
+      .split-pane {
+        flex-direction: column;
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      * { transition: none !important; }
+      * {
+        transition: none !important;
+      }
     }
   </style>
 </head>
@@ -733,11 +767,16 @@
         <div id="journal-panel">
           <textarea id="journal-text" spellcheck="false">2026-01-01 opening
     assets:bank        $100
+    assets:hand        $150
     equity:opening
 
 2026-01-02 coffee
     expenses:food       $5
-    assets:bank</textarea>
+    assets:bank
+
+2026-01-02 coffee
+    assets:bank       $500
+    income:salary</textarea>
         </div>
 
         <!-- Unified GUI Panel -->
@@ -749,10 +788,10 @@
       <div id="output-view" style="display: none;">
         <!-- Raw Report Result -->
         <textarea id="output" readonly spellcheck="false">Waiting for a journal to load.</textarea>
-        
+
         <!-- GUI Report Render (Adapter Pattern Output) -->
         <div id="gui-output-panel" style="display: none; flex: 1;">
-            <!-- Populated by JS Adapters -->
+          <!-- Populated by JS Adapters -->
         </div>
       </div>
     </section>
@@ -905,7 +944,7 @@ if TRANSFER TO SAVINGS
       isGui: true
     };
 
-    let editingTxnId = null; 
+    let editingTxnId = null;
 
     // --- Element Selectors ----------------------------------------------
     const journalText = document.querySelector("#journal-text");
@@ -959,7 +998,7 @@ if TRANSFER TO SAVINGS
       if (typeof data === 'string') return [];
       if (data && typeof data.data === 'string') return [];
       if (Array.isArray(data)) return data;
-      if (data && Array.isArray(data.data)) return data.data; 
+      if (data && Array.isArray(data.data)) return data.data;
       return [];
     }
 
@@ -967,7 +1006,7 @@ if TRANSFER TO SAVINGS
     function adaptGenericListToTable(rawData) {
       const list = adaptGenericList(rawData);
       if (list.length === 0) return { type: "table", columns: ["Result"], rows: [["No data found or returned plain text."]] };
-      
+
       if (typeof list[0] !== 'object' || list[0] === null) {
         return { type: "table", columns: ["Item"], rows: list.map(item => [String(item)]) };
       }
@@ -975,11 +1014,11 @@ if TRANSFER TO SAVINGS
       const colSet = new Set();
       list.forEach(item => Object.keys(item).forEach(k => colSet.add(k)));
       const columns = Array.from(colSet);
-      
+
       const rows = list.map(item => columns.map(col => {
-         const val = item[col];
-         if (typeof val === 'object') return JSON.stringify(val);
-         return String(val !== undefined && val !== null ? val : "");
+        const val = item[col];
+        if (typeof val === 'object') return JSON.stringify(val);
+        return String(val !== undefined && val !== null ? val : "");
       }));
       return { type: "table", columns, rows };
     }
@@ -988,11 +1027,12 @@ if TRANSFER TO SAVINGS
     function buildTreeFromFlatList(rawData) {
       const flatList = adaptGenericList(rawData);
       const rootNodes = [];
-      
+
+      // 1. Build the basic tree structure (parents get empty strings, leaves get amounts)
       flatList.forEach(item => {
         const acctName = item.account || item.name || item.a || "";
         if (!acctName) return;
-        
+
         const amountStr = item.amount || item.balance || item.total || item.b || "";
         const parts = String(acctName).split(":");
         let currentLevel = rootNodes;
@@ -1003,11 +1043,46 @@ if TRANSFER TO SAVINGS
             node = { name: part, amount: (index === parts.length - 1) ? amountStr : "", children: [] };
             currentLevel.push(node);
           } else if (index === parts.length - 1 && amountStr) {
-             node.amount = amountStr;
+            node.amount = amountStr;
           }
           currentLevel = node.children;
         });
       });
+
+      // 2. Recursively roll up child amounts into parent nodes
+      function rollUpTotals(node) {
+        // If it's a leaf node, extract its numeric value and symbol for the parent to use
+        if (!node.children || node.children.length === 0) {
+          const match = (node.amount || "").match(/^([^\d-]*)([-0-9.]+)/);
+          return {
+            symbol: match ? match[1] : "",
+            val: match ? parseFloat(match[2]) : 0
+          };
+        }
+
+        // If it's a parent node, sum up the values of all its children
+        let totalVal = 0;
+        let symbol = "";
+
+        node.children.forEach(child => {
+          const childTotal = rollUpTotals(child);
+          totalVal += childTotal.val;
+          if (!symbol) symbol = childTotal.symbol; // Inherit the currency symbol from children
+        });
+
+        // Assign the calculated total back to the parent node's amount property
+        if (totalVal !== 0) {
+           // Prevent trailing decimal zeroes for clean integers (e.g., $95 instead of $95.00)
+           const formattedVal = Number.isInteger(totalVal) ? totalVal : totalVal.toFixed(2);
+           node.amount = `${symbol}${formattedVal}`;
+        }
+
+        return { symbol, val: totalVal };
+      }
+
+      // Execute the roll-up starting from the root
+      rootNodes.forEach(rollUpTotals);
+
       return rootNodes;
     }
 
@@ -1015,20 +1090,20 @@ if TRANSFER TO SAVINGS
     function renderUniversalTable(tableData) {
       const container = document.createElement("div");
       container.className = "table-container";
-      
+
       const table = document.createElement("table");
       table.className = "table-ui";
-      
+
       const thead = document.createElement("thead");
       thead.innerHTML = `<tr>${tableData.columns.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr>`;
       table.appendChild(thead);
-      
+
       const tbody = document.createElement("tbody");
-      tbody.innerHTML = tableData.rows.map(row => 
+      tbody.innerHTML = tableData.rows.map(row =>
         `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`
       ).join('');
       table.appendChild(tbody);
-      
+
       container.appendChild(table);
       return container;
     }
@@ -1037,10 +1112,10 @@ if TRANSFER TO SAVINGS
     function renderTree(nodeList) {
       const container = document.createElement("div");
       container.className = "tree-container";
-      
+
       if (nodeList.length === 0) {
-         container.innerHTML = `<div style="padding: 12px; color: var(--ink-soft); font-family: var(--mono); font-size: 12px;">No hierarchical data found. Switch to raw view if this is unexpected.</div>`;
-         return container;
+        container.innerHTML = `<div style="padding: 12px; color: var(--ink-soft); font-family: var(--mono); font-size: 12px;">No hierarchical data found. Switch to raw view if this is unexpected.</div>`;
+        return container;
       }
 
       nodeList.forEach(node => container.appendChild(renderTreeNode(node)));
@@ -1074,38 +1149,212 @@ if TRANSFER TO SAVINGS
 
     // Fallback Renderer for Plain Text outputs
     function renderText(data) {
-       const pre = document.createElement("pre");
-       pre.style.cssText = "font-family: var(--mono); font-size: 12px; padding: 12px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; margin: 0;";
-       
-       let text = "";
-       if (typeof data === 'string') text = data;
-       else if (data && typeof data.data === 'string') text = data.data;
-       else text = JSON.stringify(data, null, 2);
-       
-       pre.textContent = text;
-       return pre;
+      const pre = document.createElement("pre");
+      pre.style.cssText = "font-family: var(--mono); font-size: 12px; padding: 12px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; margin: 0;";
+
+      let text = "";
+      if (typeof data === 'string') text = data;
+      else if (data && typeof data.data === 'string') text = data.data;
+      else text = JSON.stringify(data, null, 2);
+
+      pre.textContent = text;
+      return pre;
     }
 
     // Auto-detects the best rendering style based on inspecting the data schema
     function smartRender(data) {
-       const list = adaptGenericList(data);
-       if (list.length === 0) return renderText(data);
-       
-       const first = list[0];
-       if (typeof first === 'object' && first !== null && (first.account !== undefined || first.name !== undefined || first.a !== undefined)) {
-          const hasHierarchy = list.some(item => String(item.account || item.name || item.a || "").includes(":"));
-          if (hasHierarchy) {
-             return renderTree(buildTreeFromFlatList(data));
-          }
-       }
-       
-       return renderUniversalTable(adaptGenericListToTable(data));
+      const list = adaptGenericList(data);
+      if (list.length === 0) return renderText(data);
+
+      const first = list[0];
+      if (typeof first === 'object' && first !== null && (first.account !== undefined || first.name !== undefined || first.a !== undefined)) {
+        const hasHierarchy = list.some(item => String(item.account || item.name || item.a || "").includes(":"));
+        if (hasHierarchy) {
+          return renderTree(buildTreeFromFlatList(data));
+        }
+      }
+
+      return renderUniversalTable(adaptGenericListToTable(data));
     }
+
+
+    function adaptBalanceReport(rawData) {
+      // 1. Unwrap the data from the API response object
+      const payload = rawData.data || rawData;
+
+      // 2. Check if payload exists and matches the [ [rows], [totals] ] structure
+      if (!payload || !Array.isArray(payload) || !Array.isArray(payload[0])) {
+        console.error("FAIL: Payload is not in the expected format!", payload);
+        return [];
+      }
+
+      const rows = payload[0];
+
+      // 3. Map the Haskell tuples to flat JavaScript objects
+      const adapted = rows.map(row => {
+        const fullName = row[0]; // e.g., "assets:bank"
+        const amounts = row[3] || [];
+
+        const formattedAmount = amounts.map(amt => {
+          const symbol = amt.acommodity || "";
+          const val = amt.aquantity?.floatingPoint || 0;
+          return `${symbol}${val}`;
+        }).join(", ");
+
+        return {
+          account: fullName,
+          amount: formattedAmount
+        };
+      });
+
+      return adapted;
+    }
+
+    // Helper to format hledger's verbose amount objects into readable strings
+    function formatHledgerAmount(amountArray) {
+      if (!amountArray || !Array.isArray(amountArray)) return "";
+      return amountArray.map(amt => {
+        const symbol = amt.acommodity || "";
+        const val = amt.aquantity?.floatingPoint || 0;
+        return `${symbol}${val}`;
+      }).join(", ");
+    }
+
+    // Adapter for the Register report
+    function adaptRegisterReport(rawData) {
+      const payload = rawData.data || rawData;
+      if (!payload || !Array.isArray(payload)) return [];
+
+      let lastDate = "";
+      let lastDesc = "";
+
+      return payload.map(row => {
+        // hledger omits the date and description on subsequent postings in the same transaction
+        // We inherit the last seen values to keep the table complete.
+        if (row[0] !== null) lastDate = row[0];
+        if (row[2] !== null) lastDesc = row[2];
+
+        const posting = row[3] || {};
+        const account = posting.paccount || "";
+
+        // row[4] contains the running balance array
+        return {
+          "Date": lastDate,
+          "Description": lastDesc,
+          "Account": account,
+          "Amount": formatHledgerAmount(posting.pamount),
+          "Balance": formatHledgerAmount(row[4])
+        };
+      });
+    }
+
+
+    // Adapter for Balance Sheet, Income Statement, and Cash Flow reports
+    function adaptBalanceSheetReport(rawData) {
+      const payload = rawData.data || rawData;
+      
+      // Validate that this is actually a CompoundBalanceReport
+      if (!payload || !payload.cbrSubreports) {
+        return []; 
+      }
+
+      const flatList = [];
+
+      // cbrSubreports is an array of tuples containing the section name and its data
+      payload.cbrSubreports.forEach(subreport => {
+        const sectionData = subreport[1];
+        
+        // Extract each account row within the section
+        if (sectionData && sectionData.prRows) {
+          sectionData.prRows.forEach(row => {
+            flatList.push({
+              account: row.prrName, // e.g., "assets:bank"
+              amount: formatHledgerAmount(row.prrTotal) // Reusing your existing helper
+            });
+          });
+        }
+      });
+
+      return flatList;
+    }
+
+    // Adapter for Periodic and Budget Reports
+    function adaptPeriodicReport(rawData) {
+      const payload = rawData.data || rawData;
+      
+      // Return null if there are no rows to display
+      if (!payload || !payload.prRows || payload.prRows.length === 0) {
+        return null;
+      }
+
+      // Build dynamic column headers based on prDates intervals
+      const headers = ["Account"];
+      if (payload.prDates && payload.prDates.length > 0) {
+        payload.prDates.forEach(datePair => {
+          const startDate = datePair[0]?.contents || "";
+          const endDate = datePair[1]?.contents || startDate;
+          headers.push(startDate === endDate ? startDate : `${startDate} to ${endDate}`);
+        });
+      }
+      headers.push("Total");
+
+      const rows = [];
+
+      // Process each periodic row
+      payload.prRows.forEach(prRow => {
+        const rowData = [];
+        
+        // 1. Account Name
+        rowData.push(prRow.prrName || "");
+
+        // 2. Periodic Amounts (one column per time interval)
+        if (Array.isArray(prRow.prrAmounts)) {
+          prRow.prrAmounts.forEach(amtList => {
+            // amtList can be an array of amounts for that period
+            if (Array.isArray(amtList) && amtList.length > 0) {
+              rowData.push(formatHledgerAmount(amtList[0]));
+            } else {
+              rowData.push("");
+            }
+          });
+        }
+
+        // 3. Row Total
+        rowData.push(formatHledgerAmount(prRow.prrTotal));
+        
+        rows.push(rowData);
+      });
+
+      return { headers, rows };
+    }
+
 
     // Strategy Dictionary (Map reports directly to a renderer without if/else logic)
     const reportStrategies = {
-      balance: (data) => renderTree(buildTreeFromFlatList(data)),
-      register: (data) => renderUniversalTable(adaptGenericListToTable(data)),
+      balance: (data) => renderTree(buildTreeFromFlatList(adaptBalanceReport(data))),
+      register: (data) => renderUniversalTable(adaptGenericListToTable(adaptRegisterReport(data))),
+      
+      balancesheet: (data) => {
+        const flat = adaptBalanceSheetReport(data);
+        if (flat.length === 0) return renderText("No data found for this query.");
+        return renderTree(buildTreeFromFlatList(flat));
+      },
+      incomestatement: (data) => {
+        const flat = adaptBalanceSheetReport(data);
+        if (flat.length === 0) return renderText("No data found for this query.");
+        return renderTree(buildTreeFromFlatList(flat));
+      },
+      cashflow: (data) => {
+        const flat = adaptBalanceSheetReport(data);
+        if (flat.length === 0) return renderText("No data found for this query.");
+        return renderTree(buildTreeFromFlatList(flat));
+      },
+      budget: (data) => {
+        const tableData = adaptPeriodicReport(data);
+        if (!tableData) return renderText("No budget data found for this query.");
+        return renderUniversalTable(tableData);
+      },
+
       accounts: (data) => renderUniversalTable(adaptGenericListToTable(data)),
       payees: (data) => renderUniversalTable(adaptGenericListToTable(data)),
       printtext: (data) => renderText(data),
@@ -1118,7 +1367,7 @@ if TRANSFER TO SAVINGS
 
     let currentStatusMessage = "";
     let isOpenStatusModalAttached = false;
-    
+
     function setStatus(text, stateType = "info", banner = statusBanner) {
       currentStatusMessage = text;
       const textEl = banner.querySelector("#status-text");
@@ -1136,7 +1385,7 @@ if TRANSFER TO SAVINGS
         }
       }
     }
-    
+
     function openStatusModal() {
       statusModalText.textContent = currentStatusMessage;
       statusModal.showModal();
@@ -1151,7 +1400,7 @@ if TRANSFER TO SAVINGS
 
       // 2. Sync GUI vs Raw View Panels[cite: 8]
       guiToggle.checked = state.isGui;
-      
+
       if (state.isGui) {
         journalPanel.style.display = "none";
         guiPanel.style.display = "flex";
@@ -1369,7 +1618,7 @@ if TRANSFER TO SAVINGS
         setStatus("Import successful.", "ok", modalBanner);
         setTimeout(() => {
           csvModal.close();
-          setStatus("Provide CSV data and rules", "info", modalBanner); 
+          setStatus("Provide CSV data and rules", "info", modalBanner);
         }, 500);
 
       } catch (err) {
@@ -1531,7 +1780,7 @@ if TRANSFER TO SAVINGS
         let result;
         if (editingTxnId !== null) result = await session.updateTransaction(editingTxnId, rawTxnText);
         else result = await session.balanceTransaction(rawTxnText);
-        
+
 
         if (result && result.error) {
           setStatus(`Error: ${result.error}`, "error", modalStatusBanner);
@@ -1633,17 +1882,17 @@ if TRANSFER TO SAVINGS
       syncUIState();
       setReportButtonsEnabled(false);
       setStatus(`Running ${label}...`, "loading");
-      
+
       try {
         const result = await action();
-        
+
         // 1. Always update the raw textarea for seamless toggle switching
         output.value = (result && typeof result.data === 'string')
           ? result.data
           : JSON.stringify(result, null, 2);
-          
+
         // 2. Generate the dynamic GUI representation via Strategy/Adapters
-        guiOutputPanel.innerHTML = ""; 
+        guiOutputPanel.innerHTML = "";
         const strategy = reportStrategies[reportId] || smartRender;
         const uiElement = strategy(result);
         guiOutputPanel.appendChild(uiElement);
