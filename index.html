@@ -626,6 +626,28 @@
       flex-shrink: 0;
     }
 
+
+
+    .hamburger-btn {
+      display: none; /* Hidden by default on desktop */
+      background: none;
+      border: none;
+      color: var(--ink);
+      cursor: pointer;
+      padding: 4px;
+      min-height: auto;
+    }
+
+    .hamburger-btn:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+
+    .mobile-close-container {
+      display: none; /* Hidden by default on desktop */
+    }
+
+
     /* --- Universal Table UI (Adapter Output) --- */
     .table-container {
       overflow-x: auto;
@@ -721,13 +743,39 @@
     @media (max-width: 780px) {
       main {
         grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
-        height: auto;
-        min-height: 100vh;
+        grid-template-rows: 1fr; 
+        height: calc(100vh - (2.4vw + 1px)); /* Preserve strict calculation to fill available screen space */
+        min-height: 0; 
       }
 
       .pane-left {
-        height: 70vh;
+        height: 100%; /* Spans the full remaining height dictated by main */
+      }
+
+      .pane-right {
+        display: none; /* Hidden by default on mobile view */
+        height: 100%;
+      }
+
+      .hamburger-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .mobile-close-container {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 16px;
+      }
+
+      /* When the toggle state is triggered, reverse visibility */
+      main.show-right-pane .pane-left {
+        display: none;
+      }
+
+      main.show-right-pane .pane-right {
+        display: flex;
       }
 
       .split-pane {
@@ -749,17 +797,31 @@
   </div>
   <main>
     <section class="pane pane-left">
-      <div class="switch-container" style="margin-bottom: 16px;">
-        <span class="switch-label">GUI</span>
-        <label class="switch">
-          <input type="checkbox" id="gui-toggle" />
-          <span class="slider"></span>
-        </label>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div class="switch-container">
+          <span class="switch-label">GUI</span>
+          <label class="switch">
+            <input type="checkbox" id="gui-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <!-- New hamburger button -->
+        <button type="button" id="mobile-menu-btn" class="hamburger-btn" aria-label="Open Menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
       </div>
 
       <div class="view-bar">
         <h2 style="margin: 0;">Journal</h2>
-        <button id="view-toggle" class="secondary" type="button">View output</button>
+        <div class="view-bar-right">
+          <button type="button" id="addtxnbtn" style="flex: 1;">Add Transaction</button>
+          <button id="view-toggle" class="secondary" type="button">View output</button>
+        </div>
       </div>
 
       <div id="input-view">
@@ -797,8 +859,16 @@
     </section>
 
     <section class="pane pane-right">
+      <div class="mobile-close-container">
+        <button type="button" id="mobile-close-btn" class="hamburger-btn" aria-label="Close Menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
       <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-        <button type="button" id="addtxnbtn" style="flex: 1;">Add Transaction</button>
         <button type="button" id="importcsvbtn" class="secondary" style="flex: 1;">Import from CSV</button>
       </div>
 
@@ -966,6 +1036,9 @@ if TRANSFER TO SAVINGS
     const inputView = document.querySelector("#input-view");
     const outputView = document.querySelector("#output-view");
     const guiToggle = document.getElementById("gui-toggle");
+    const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+    const mobileCloseBtn = document.getElementById("mobile-close-btn");
+    const mainContent = document.querySelector("main");
 
     const txnModal = document.getElementById("txn-modal");
     const modalTitle = document.getElementById("modal-title");
@@ -1072,9 +1145,9 @@ if TRANSFER TO SAVINGS
 
         // Assign the calculated total back to the parent node's amount property
         if (totalVal !== 0) {
-           // Prevent trailing decimal zeroes for clean integers (e.g., $95 instead of $95.00)
-           const formattedVal = Number.isInteger(totalVal) ? totalVal : totalVal.toFixed(2);
-           node.amount = `${symbol}${formattedVal}`;
+          // Prevent trailing decimal zeroes for clean integers (e.g., $95 instead of $95.00)
+          const formattedVal = Number.isInteger(totalVal) ? totalVal : totalVal.toFixed(2);
+          node.amount = `${symbol}${formattedVal}`;
         }
 
         return { symbol, val: totalVal };
@@ -1252,10 +1325,10 @@ if TRANSFER TO SAVINGS
     // Adapter for Balance Sheet, Income Statement, and Cash Flow reports
     function adaptBalanceSheetReport(rawData) {
       const payload = rawData.data || rawData;
-      
+
       // Validate that this is actually a CompoundBalanceReport
       if (!payload || !payload.cbrSubreports) {
-        return []; 
+        return [];
       }
 
       const flatList = [];
@@ -1263,7 +1336,7 @@ if TRANSFER TO SAVINGS
       // cbrSubreports is an array of tuples containing the section name and its data
       payload.cbrSubreports.forEach(subreport => {
         const sectionData = subreport[1];
-        
+
         // Extract each account row within the section
         if (sectionData && sectionData.prRows) {
           sectionData.prRows.forEach(row => {
@@ -1281,7 +1354,7 @@ if TRANSFER TO SAVINGS
     // Adapter for Periodic and Budget Reports
     function adaptPeriodicReport(rawData) {
       const payload = rawData.data || rawData;
-      
+
       // Return null if there are no rows to display
       if (!payload || !payload.prRows || payload.prRows.length === 0) {
         return null;
@@ -1303,7 +1376,7 @@ if TRANSFER TO SAVINGS
       // Process each periodic row
       payload.prRows.forEach(prRow => {
         const rowData = [];
-        
+
         // 1. Account Name
         rowData.push(prRow.prrName || "");
 
@@ -1321,11 +1394,11 @@ if TRANSFER TO SAVINGS
 
         // 3. Row Total
         rowData.push(formatHledgerAmount(prRow.prrTotal));
-        
+
         rows.push(rowData);
       });
 
-      return { headers, rows };
+      return { type: "table", columns: headers, rows };
     }
 
 
@@ -1333,7 +1406,7 @@ if TRANSFER TO SAVINGS
     const reportStrategies = {
       balance: (data) => renderTree(buildTreeFromFlatList(adaptBalanceReport(data))),
       register: (data) => renderUniversalTable(adaptGenericListToTable(adaptRegisterReport(data))),
-      
+
       balancesheet: (data) => {
         const flat = adaptBalanceSheetReport(data);
         if (flat.length === 0) return renderText("No data found for this query.");
@@ -1412,6 +1485,8 @@ if TRANSFER TO SAVINGS
         guiOutputPanel.style.display = "none";
         output.style.display = ""; // Reverts to flex: 1 natively defined in original CSS block
       }
+
+      closeRightMenuOnMobile();
     }
 
     async function syncJournalTextToState() {
@@ -1593,12 +1668,22 @@ if TRANSFER TO SAVINGS
       const forecast = forecastToggle.checked;
       const modalBanner = document.getElementById("csv-modal-status");
 
+      // 1. Disable the buttons to prevent double-clicking
+      csvAppendBtn.disabled = true;
+      csvReplaceBtn.disabled = true;
+      csvCancelBtn.disabled = true;
+
       setStatus("Parsing CSV data...", "loading", modalBanner);
 
       try {
         const result = await session.parseCsv(csvData, rulesData, forecast);
+        
         if (!result.ok) {
           setStatus(`Error: ${result.error}`, "error", modalBanner);
+          // 2. Re-enable buttons if validation/parsing fails
+          csvAppendBtn.disabled = false;
+          csvReplaceBtn.disabled = false;
+          csvCancelBtn.disabled = false;
           return;
         }
 
@@ -1616,13 +1701,27 @@ if TRANSFER TO SAVINGS
 
         await reparse();
         setStatus("Import successful.", "ok", modalBanner);
+        
         setTimeout(() => {
           csvModal.close();
+          
+          closeRightMenuOnMobile();
+          
           setStatus("Provide CSV data and rules", "info", modalBanner);
+          
+          // 3. Re-enable buttons so they are ready the next time the modal is opened
+          csvAppendBtn.disabled = false;
+          csvReplaceBtn.disabled = false;
+          csvCancelBtn.disabled = false;
         }, 500);
 
       } catch (err) {
         setStatus(`Import failed: ${err.message}`, "error", modalBanner);
+        
+        // 4. Re-enable buttons if a catastrophic script error occurs
+        csvAppendBtn.disabled = false;
+        csvReplaceBtn.disabled = false;
+        csvCancelBtn.disabled = false;
       }
     }
 
@@ -1640,6 +1739,18 @@ if TRANSFER TO SAVINGS
       state.view = state.view === "input" ? "output" : "input";
       syncUIState();
     });
+
+
+    function openRightMenuOnMobile() {
+      mainContent.classList.add("show-right-pane");
+    }
+    function closeRightMenuOnMobile() {
+      mainContent.classList.remove("show-right-pane");
+    }
+    if (mobileMenuBtn && mobileCloseBtn) {
+      mobileMenuBtn.addEventListener("click", openRightMenuOnMobile);
+      mobileCloseBtn.addEventListener("click", closeRightMenuOnMobile);
+    }
 
     journalText.addEventListener("input", scheduleReparse);
     forecastToggle.addEventListener("change", reparse);
@@ -1909,7 +2020,8 @@ if TRANSFER TO SAVINGS
 
     // --- Init -----------------------------------------------------------
     setStatus("Initializing WASM module...", "loading");
-    const session = await HledgerSession.create();
+    const session = await HledgerSession.init();
+    window.session = session;
     syncUIState();
     await reparse();
   </script>
