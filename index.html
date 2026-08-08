@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark-mode">
 
 <head>
   <meta charset="utf-8" />
@@ -28,6 +28,10 @@
       height: 100%;
     }
 
+    html.dark-mode {
+      filter: invert(1) hue-rotate(160deg);
+    }
+
     body {
       margin: 0;
       background: var(--paper);
@@ -41,7 +45,7 @@
       grid-template-columns: minmax(360px, 1fr) minmax(240px, 320px);
       gap: 1px;
       background: var(--rule);
-      height: calc(100vh - (2.4vw + 1px));
+      height: calc(100dvh - (2.4vw + 1px));
     }
 
     .pane {
@@ -377,7 +381,7 @@
     .modal-large {
       width: 95%;
       max-width: 1000px;
-      height: 90vh;
+      height: 90dvh;
       max-height: 800px;
     }
 
@@ -629,7 +633,8 @@
 
 
     .hamburger-btn {
-      display: none; /* Hidden by default on desktop */
+      display: none;
+      /* Hidden by default on desktop */
       background: none;
       border: none;
       color: var(--ink);
@@ -644,7 +649,8 @@
     }
 
     .mobile-close-container {
-      display: none; /* Hidden by default on desktop */
+      display: none;
+      /* Hidden by default on desktop */
     }
 
 
@@ -743,17 +749,20 @@
     @media (max-width: 780px) {
       main {
         grid-template-columns: 1fr;
-        grid-template-rows: 1fr; 
-        height: calc(100vh - (2.4vw + 1px)); /* Preserve strict calculation to fill available screen space */
-        min-height: 0; 
+        grid-template-rows: 1fr;
+        height: calc(100dvh - (2.4vw + 1px));
+        /* Preserve strict calculation to fill available screen space */
+        min-height: 0;
       }
 
       .pane-left {
-        height: 100%; /* Spans the full remaining height dictated by main */
+        height: 100%;
+        /* Spans the full remaining height dictated by main */
       }
 
       .pane-right {
-        display: none; /* Hidden by default on mobile view */
+        display: none;
+        /* Hidden by default on mobile view */
         height: 100%;
       }
 
@@ -805,15 +814,28 @@
             <span class="slider"></span>
           </label>
         </div>
-        <!-- New hamburger button -->
-        <button type="button" id="mobile-menu-btn" class="hamburger-btn" aria-label="Open Menu">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
+        <div style="display: flex; flex-direction: row;">
+          <button type="button" id="settings-btn" class="secondary"
+            style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; min-height: auto; border: none;"
+            aria-label="Settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
+            </svg>
+          </button>
+          <!-- New hamburger button -->
+          <button type="button" id="mobile-menu-btn" class="hamburger-btn" aria-label="Open Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div class="view-bar">
@@ -859,14 +881,16 @@
     </section>
 
     <section class="pane pane-right">
-      <div class="mobile-close-container">
-        <button type="button" id="mobile-close-btn" class="hamburger-btn" aria-label="Close Menu">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 16px;">
+        <div class="mobile-close-container" style="margin-bottom: 0;">
+          <button type="button" id="mobile-close-btn" class="hamburger-btn" aria-label="Close Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </div>
       <div style="display: flex; gap: 8px; margin-bottom: 16px;">
         <button type="button" id="importcsvbtn" class="secondary" style="flex: 1;">Import from CSV</button>
@@ -1003,6 +1027,46 @@ if TRANSFER TO SAVINGS
         <button type="button" class="secondary" id="close-status-modal">Close</button>
       </div>
     </dialog>
+
+    <!-- Modal for Settings -->
+    <dialog id="settings-modal" class="modal">
+      <h2>Settings</h2>
+
+      <div class="field-row" style="margin-bottom: 16px;">
+        <div class="switch-container">
+          <span class="switch-label">Dark Mode</span>
+          <label class="switch">
+            <input type="checkbox" id="setting-dark-mode" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field-row" style="margin-bottom: 16px;">
+        <div class="switch-container">
+          <span class="switch-label">Compact Typeface</span>
+          <label class="switch">
+            <input type="checkbox" id="setting-compact-mode" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field-row" style="margin-bottom: 24px;">
+        <div class="switch-container">
+          <span class="switch-label">Hide Status Banner</span>
+          <label class="switch">
+            <input type="checkbox" id="setting-hide-banner" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="close-settings-modal">Close</button>
+      </div>
+    </dialog>
+
   </main>
 
   <script type="module">
@@ -1059,6 +1123,13 @@ if TRANSFER TO SAVINGS
     const csvCancelBtn = document.getElementById("cancel-csv-btn");
     const csvAppendBtn = document.getElementById("append-csv-btn");
     const csvReplaceBtn = document.getElementById("replace-csv-btn");
+
+    const settingsBtn = document.getElementById("settings-btn");
+    const settingsModal = document.getElementById("settings-modal");
+    const closeSettingsModal = document.getElementById("close-settings-modal");
+    const settingDarkMode = document.getElementById("setting-dark-mode");
+    const settingCompactMode = document.getElementById("setting-compact-mode");
+    const settingHideBanner = document.getElementById("setting-hide-banner");
 
     // --- Adapters & UI Renderers (Strategy + Adapter Pattern) ---------
 
@@ -1471,7 +1542,7 @@ if TRANSFER TO SAVINGS
       outputView.style.display = state.view === "output" ? "flex" : "none";
       viewToggleButton.textContent = state.view === "input" ? "View output" : "View input";
 
-      // 2. Sync GUI vs Raw View Panels[cite: 8]
+      // 2. Sync GUI vs Raw View Panels
       guiToggle.checked = state.isGui;
 
       if (state.isGui) {
@@ -1677,7 +1748,7 @@ if TRANSFER TO SAVINGS
 
       try {
         const result = await session.parseCsv(csvData, rulesData, forecast);
-        
+
         if (!result.ok) {
           setStatus(`Error: ${result.error}`, "error", modalBanner);
           // 2. Re-enable buttons if validation/parsing fails
@@ -1701,14 +1772,14 @@ if TRANSFER TO SAVINGS
 
         await reparse();
         setStatus("Import successful.", "ok", modalBanner);
-        
+
         setTimeout(() => {
           csvModal.close();
-          
+
           closeRightMenuOnMobile();
-          
+
           setStatus("Provide CSV data and rules", "info", modalBanner);
-          
+
           // 3. Re-enable buttons so they are ready the next time the modal is opened
           csvAppendBtn.disabled = false;
           csvReplaceBtn.disabled = false;
@@ -1717,7 +1788,7 @@ if TRANSFER TO SAVINGS
 
       } catch (err) {
         setStatus(`Import failed: ${err.message}`, "error", modalBanner);
-        
+
         // 4. Re-enable buttons if a catastrophic script error occurs
         csvAppendBtn.disabled = false;
         csvReplaceBtn.disabled = false;
@@ -1761,6 +1832,46 @@ if TRANSFER TO SAVINGS
       setStatus("Output cleared.", "info");
       state.view = "output";
       syncUIState();
+    });
+
+    // --- Settings Event Handlers ----------------------------------------
+    settingsBtn.addEventListener("click", () => {
+      settingDarkMode.checked = document.documentElement.classList.contains("dark-mode");
+      settingsModal.showModal();
+    });
+
+    closeSettingsModal.addEventListener("click", () => {
+      settingsModal.close();
+    });
+
+    settingDarkMode.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        document.documentElement.classList.add("dark-mode");
+      } else {
+        document.documentElement.classList.remove("dark-mode");
+      }
+    });
+
+    settingCompactMode.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        document.documentElement.style.setProperty('--sans', 'var(--mono)');
+        document.documentElement.style.fontSize = '12px';
+      } else {
+        document.documentElement.style.removeProperty('--sans');
+        document.documentElement.style.removeProperty('font-size');
+      }
+    });
+
+    settingHideBanner.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        statusBanner.style.display = 'none';
+        document.body.style.paddingTop = '0';
+        mainContent.style.height = '100dvh';
+      } else {
+        statusBanner.style.display = 'flex';
+        document.body.style.paddingTop = 'calc(2.4vw + 1px)';
+        mainContent.style.height = 'calc(100dvh - (2.4vw + 1px))';
+      }
     });
 
     // --- Transaction Modal Handler --------------------------------------
