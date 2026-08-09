@@ -1,7 +1,11 @@
-const isLocalDev = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const isLocalDev =
+  window.location.protocol === "file:" ||
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
 const wasmUrlPrefix = isLocalDev
-  ? "../wasm/"
-  : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/wasm/";
+  ? "http://localhost:5001/wasm/"
+  : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/";
 
 
 import { createWasiEnvironment, BridgeStorage } from "./storage.js";
