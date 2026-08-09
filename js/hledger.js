@@ -5,7 +5,7 @@ const isLocalDev =
 
 const wasmUrlPrefix = isLocalDev
   ? "http://localhost:5001/wasm/"
-  : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/";
+  : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/wasm/";
 
 
 import { createWasiEnvironment, BridgeStorage } from "./storage.js";
