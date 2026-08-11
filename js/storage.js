@@ -1,3 +1,5 @@
+// hledger-lib-wasm/js/storage.js
+
 import { WASI, File, PreopenDirectory, OpenFile, ConsoleStdout } from "https://cdn.jsdelivr.net/npm/@bjorn3/browser_wasi_shim@0.4.2/dist/index.js";
 
 // Internal state for the WASI environment
