@@ -5,3 +5,4 @@ node_modules/
 wasm/*
 !wasm/hledger-wasm-final*
 hledger-lib-wasm.txt
+hledger-lib-wasm.md

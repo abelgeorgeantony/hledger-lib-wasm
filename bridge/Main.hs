@@ -58,6 +58,9 @@ import Hledger.Query (Query(..), queryDateSpan')
 import Hledger.Reports.MultiBalanceReport (compoundBalanceReport)
 import Hledger.Reports.ReportTypes (CBCSubreportSpec(..), DisplayName, CompoundPeriodicReport)
 
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text.Encoding as TE
+
 
 {-# NOINLINE journalTable #-}
 journalTable :: IORef (Map.Map Int Journal, Int)
@@ -192,7 +195,7 @@ hs_parseCsv jsCsvText jsRulesPath = do
 
 
 jsonResponse :: [Pair] -> IO JSString
-jsonResponse = pure . toJSString . BLC.unpack . encode . object
+jsonResponse = pure . toJSString . T.unpack . TE.decodeUtf8 . BL.toStrict . encode . object
 hs_runReport :: Int -> JSString -> JSString -> IO JSString
 hs_runReport handle jsReportName jsQuery = do
   (tbl, _) <- readIORef journalTable
